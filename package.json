@@ -1,19 +1,19 @@
 {
-  "name": "react-native-paystack",
+  "name": "react-native-pay-stack",
   "description": "React Native Wrappers for Paystack Android & iOS Mobile SDKs",
   "main": "index.js",
   "author": "Tolu Olowu (Arttitude 360) <tolu@arttitude360.com>",
-  "version": "3.4.0",
+  "version": "1.0.0",
   "scripts": {},
   "repository": {
     "type": "git",
-    "url": "https://github.com/tolu360/react-native-paystack"
+    "url": "https://github.com/peterdevrel/react-native-pay-stack"
   },
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/tolu360/react-native-paystack/issues"
+    "url": "https://github.com/peterdevrel/react-native-pay-stack/issues"
   },
-  "homepage": "https://github.com/tolu360/react-native-paystack#readme",
+  "homepage": "https://github.com/peterdevrel/react-native-pay-stack#readme",
   "keywords": [
     "react",
     "react-native",
