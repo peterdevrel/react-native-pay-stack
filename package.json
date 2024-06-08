@@ -1,5 +1,5 @@
 {
-  "name": "react-native-pay-stack",
+  "name": "@peterdevrel/react-native-pay-stack",
   "description": "React Native Wrappers for Paystack Android & iOS Mobile SDKs",
   "main": "index.js",
   "author": "Tolu Olowu (Arttitude 360) <tolu@arttitude360.com>",
