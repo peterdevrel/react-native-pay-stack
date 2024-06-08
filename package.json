@@ -4,6 +4,9 @@
   "main": "index.js",
   "author": "Tolu Olowu (Arttitude 360) <tolu@arttitude360.com>",
   "version": "1.0.2",
+  "publishConfig": {
+    "@peterdevrel:registry": "https://npm.pkg.github.com"
+  },
   "scripts": {},
   "repository": {
     "type": "git",
