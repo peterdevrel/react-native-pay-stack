@@ -1,4 +1,4 @@
-#import <Paystack/Paystack.h>
+#import <Paystack/Paystack.h> 
 #import <React/RCTBridgeModule.h>
 #import <React/RCTBridge.h>
 #import <React/RCTEventDispatcher.h>
@@ -16,6 +16,6 @@
 - (BOOL)cardParamsAreValid:(NSString *)cardNumber withMonth:(NSString *)expMonth withYear:(NSString *)expYear andWithCvc:(NSString *)cvc;
 - (NSMutableDictionary*)setTokenMsg:(NSString *)token withCardLastDigits:(NSString *)last4;
 - (NSMutableDictionary*)setReferenceMsg:(NSString *)reference;
+- (NSMutableDictionary *)setMetadata:(NSDictionary *)metadata;
 
 @end
-  
