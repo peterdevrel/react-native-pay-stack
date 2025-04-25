@@ -195,6 +195,27 @@ public class RNPaystackModule extends ReactContextBaseJavaModule {
         if (hasStringKey("accessCode")) {
             charge.setAccessCode(chargeOptions.getString("accessCode"));
         }
+
+            try {
+            JSONArray customFields = new JSONArray();
+            ReadableMapKeySetIterator iterator = chargeOptions.keySetIterator();
+            while (iterator.hasNextKey()) {
+                String key = iterator.nextKey();
+                if (!key.equals("metadata") && !key.equals("accessCode")) {
+                    JSONObject field = new JSONObject();
+                    field.put("display_name", key);
+                    field.put("variable_name", key);
+                    field.put("value", chargeOptions.getString(key));
+                    customFields.put(field);
+                }
+            }
+
+                charge.putMetadata("custom_fields", customFields);
+
+            } catch (JSONException e) {
+                rejectPromise("E_METADATA_ERROR", "Error adding metadata: " + e.getMessage());
+            }
+            
     }
 
     private void validateFullTransaction() {
@@ -229,6 +250,33 @@ public class RNPaystackModule extends ReactContextBaseJavaModule {
         }
 
         charge.setAmount(amountInKobo);
+
+    
+    // Add custom metadata (Paystack SDK v3.1.3 does NOT support setMetadata())
+        try {
+            JSONArray customFields = new JSONArray();
+            ReadableMapKeySetIterator iterator = chargeOptions.keySetIterator();
+            while (iterator.hasNextKey()) {
+                String key = iterator.nextKey();
+                if (!key.equals("metadata")) {
+                    JSONObject field = new JSONObject();
+                    field.put("display_name", key);
+                    field.put("variable_name", key);
+                    field.put("value", chargeOptions.getString(key));
+                    customFields.put(field);
+                }
+            }
+
+            JSONObject metadata = new JSONObject();
+            metadata.put("custom_fields", customFields);
+
+            charge.putMetadata("custom_fields", customFields);
+
+        } catch (JSONException e) {
+            rejectPromise("E_METADATA_ERROR", "Error adding metadata: " + e.getMessage());
+            return;
+        }
+
 
         if (hasStringKey("currency")) {
             charge.setCurrency(chargeOptions.getString("currency"));

@@ -115,6 +115,13 @@ RCT_EXPORT_METHOD(init:(NSDictionary *)options) {
     [Paystack setDefaultPublicKey:publicKey];
 }
 
+
+// Method to handle dynamic metadata
+- (NSMutableDictionary *)setMetadata:(NSDictionary *)metadata {
+    NSMutableDictionary *metadataDict = [NSMutableDictionary dictionaryWithDictionary:metadata];
+    return metadataDict;
+}
+
 RCT_EXPORT_METHOD(chargeCard:(NSDictionary *)params 
     resolver:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject)
 {
@@ -147,6 +154,13 @@ RCT_EXPORT_METHOD(chargeCard:(NSDictionary *)params
         PSTCKTransactionParams *transactionParams = [[PSTCKTransactionParams alloc] init];
         transactionParams.amount = [params[@"amountInKobo"] integerValue];
         transactionParams.email = params[@"email"];
+
+           // Handle dynamic metadata
+        if (params[@"metadata"] != nil && [params[@"metadata"] isKindOfClass:[NSDictionary class]]) {
+            NSDictionary *metadata = params[@"metadata"];
+            transactionParams.metadata = [self setMetadata:metadata];
+        }
+
 
         if (params[@"currency"] != nil) {
             transactionParams.currency = params[@"currency"];
