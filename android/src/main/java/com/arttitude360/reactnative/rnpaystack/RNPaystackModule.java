@@ -254,28 +254,30 @@ public class RNPaystackModule extends ReactContextBaseJavaModule {
     
    // Add custom metadata (ensure it is part of JSONObject)
     try {
-        JSONArray customFields = new JSONArray();
-        ReadableMapKeySetIterator iterator = chargeOptions.keySetIterator();
-        while (iterator.hasNextKey()) {
-            String key = iterator.nextKey();
-            if (!key.equals("metadata")) {
-                JSONObject field = new JSONObject();
-                field.put("display_name", key);
-                field.put("variable_name", key);
-                field.put("value", chargeOptions.getString(key));
-                customFields.put(field);
+            JSONArray customFields = new JSONArray();
+            ReadableMapKeySetIterator iterator = chargeOptions.keySetIterator();
+            while (iterator.hasNextKey()) {
+                String key = iterator.nextKey();
+                if (!key.equals("metadata")) {
+                    JSONObject field = new JSONObject();
+                    field.put("display_name", key);
+                    field.put("variable_name", key);
+                    field.put("value", chargeOptions.getString(key));
+                    customFields.put(field);
+                }
             }
+
+            // Wrap the custom fields in a JSONObject
+            JSONObject metadata = new JSONObject();
+            metadata.put("custom_fields", customFields);
+
+            // Pass the entire JSONObject to putMetadata()
+            charge.putMetadata("custom_fields", metadata); 
+
+        } catch (JSONException e) {
+            rejectPromise("E_METADATA_ERROR", "Error adding metadata: " + e.getMessage());
+            return;
         }
-
-        JSONObject metadata = new JSONObject();
-        metadata.put("custom_fields", customFields);
-
-        charge.putMetadata("custom_fields", metadata);  // Pass the entire JSONObject
-
-    } catch (JSONException e) {
-        rejectPromise("E_METADATA_ERROR", "Error adding metadata: " + e.getMessage());
-        return;
-    }
 
 
         if (hasStringKey("currency")) {
