@@ -200,14 +200,14 @@ public class RNPaystackModule extends ReactContextBaseJavaModule {
         }
 
 
-       try {
+      try {
             if (chargeOptions.hasKey("metadata") && chargeOptions.getType("metadata") == ReadableType.Map) {
                 ReadableMap metadataMap = chargeOptions.getMap("metadata");
 
-                JSONObject metadataObject = new JSONObject();
+                JSONArray customFieldsJson = new JSONArray();
+
                 if (metadataMap.hasKey("custom_fields") && metadataMap.getType("custom_fields") == ReadableType.Array) {
                     ReadableArray customFieldsArray = metadataMap.getArray("custom_fields");
-                    JSONArray customFieldsJson = new JSONArray();
 
                     for (int i = 0; i < customFieldsArray.size(); i++) {
                         ReadableMap item = customFieldsArray.getMap(i);
@@ -231,17 +231,14 @@ public class RNPaystackModule extends ReactContextBaseJavaModule {
                         customFieldsJson.put(field);
                     }
 
-                    // Now set custom_fields in the metadata object
-                    metadataObject.put("custom_fields", customFieldsJson);
+                    // ❗ THIS is what Paystack expects (flat custom_fields directly)
+                    charge.putMetadata("custom_fields", customFieldsJson);
                 }
-
-                // Attach the metadata to the charge
-                charge.putMetadata("metadata", metadataObject);
             }
         } catch (JSONException e) {
             rejectPromise("E_METADATA_ERROR", "Error formatting metadata: " + e.getMessage());
-            return;
         }
+
 
 
 
@@ -307,15 +304,14 @@ public class RNPaystackModule extends ReactContextBaseJavaModule {
         if (hasStringKey("reference")) {
             charge.setReference(chargeOptions.getString("reference"));
         }
-    
-      try {
+    try {
             if (chargeOptions.hasKey("metadata") && chargeOptions.getType("metadata") == ReadableType.Map) {
                 ReadableMap metadataMap = chargeOptions.getMap("metadata");
 
-                JSONObject metadataObject = new JSONObject();
+                JSONArray customFieldsJson = new JSONArray();
+
                 if (metadataMap.hasKey("custom_fields") && metadataMap.getType("custom_fields") == ReadableType.Array) {
                     ReadableArray customFieldsArray = metadataMap.getArray("custom_fields");
-                    JSONArray customFieldsJson = new JSONArray();
 
                     for (int i = 0; i < customFieldsArray.size(); i++) {
                         ReadableMap item = customFieldsArray.getMap(i);
@@ -339,16 +335,12 @@ public class RNPaystackModule extends ReactContextBaseJavaModule {
                         customFieldsJson.put(field);
                     }
 
-                    // Now set custom_fields in the metadata object
-                    metadataObject.put("custom_fields", customFieldsJson);
+                    // ❗ THIS is what Paystack expects (flat custom_fields directly)
+                    charge.putMetadata("custom_fields", customFieldsJson);
                 }
-
-                // Attach the metadata to the charge
-                charge.putMetadata("metadata", metadataObject);
             }
         } catch (JSONException e) {
             rejectPromise("E_METADATA_ERROR", "Error formatting metadata: " + e.getMessage());
-            return;
         }
 
 
