@@ -251,20 +251,26 @@ public class RNPaystackModule extends ReactContextBaseJavaModule {
         }
 
         // Add metadata support
-    if (chargeOptions.hasKey("metadata")) {
+   if (chargeOptions.hasKey("metadata")) {
         try {
             ReadableMap metadataMap = chargeOptions.getMap("metadata");
             
-            // Handle custom_fields if present
+            // Handle custom_fields
             if (metadataMap.hasKey("custom_fields")) {
                 ReadableArray customFields = metadataMap.getArray("custom_fields");
+                JSONArray customFieldsJson = new JSONArray();
+                
                 for (int i = 0; i < customFields.size(); i++) {
                     ReadableMap field = customFields.getMap(i);
-                    charge.putMetadata(
-                        field.getString("variable_name"),
-                        field.getString("value")
-                    );
+                    JSONObject fieldJson = new JSONObject();
+                    fieldJson.put("display_name", field.getString("display_name"));
+                    fieldJson.put("variable_name", field.getString("variable_name"));
+                    fieldJson.put("value", field.getString("value"));
+                    customFieldsJson.put(fieldJson);
                 }
+                
+                // This is the crucial line that makes it appear in dashboard
+                charge.putMetadata("custom_fields", customFieldsJson);
             }
             
             // Handle other metadata properties
@@ -277,7 +283,7 @@ public class RNPaystackModule extends ReactContextBaseJavaModule {
                             charge.putMetadata(key, String.valueOf(metadataMap.getBoolean(key)));
                             break;
                         case Number:
-                            charge.putMetadata(key, String.valueOf(metadataMap.getDouble(key)));
+                            charge.putMetadata(key, String.valueOf(metadataMap.getInt(key)));
                             break;
                         case String:
                             charge.putMetadata(key, metadataMap.getString(key));
