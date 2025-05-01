@@ -251,24 +251,44 @@ public class RNPaystackModule extends ReactContextBaseJavaModule {
         }
 
         // Add metadata support
-        if (chargeOptions.hasKey("metadata")) {
-            try {
-                ReadableMap metadataMap = chargeOptions.getMap("metadata");
-                if (metadataMap.hasKey("custom_fields")) {
-                    ReadableArray customFields = metadataMap.getArray("custom_fields");
-                    for (int i = 0; i < customFields.size(); i++) {
-                        ReadableMap field = customFields.getMap(i);
-                        charge.addCustomField(
-                            field.getString("variable_name"),
-                            field.getString("display_name"),
-                            field.getString("value")
-                        );
-                    }
+       if (chargeOptions.hasKey("metadata")) {
+        try {
+            ReadableMap metadataMap = chargeOptions.getMap("metadata");
+            JSONObject metadataJson = new JSONObject();
+            
+            // Convert the ReadableMap to JSONObject
+            ReadableMapKeySetIterator iterator = metadataMap.keySetIterator();
+            while (iterator.hasNextKey()) {
+                String key = iterator.nextKey();
+                switch (metadataMap.getType(key)) {
+                    case Null:
+                        metadataJson.put(key, JSONObject.NULL);
+                        break;
+                    case Boolean:
+                        metadataJson.put(key, metadataMap.getBoolean(key));
+                        break;
+                    case Number:
+                        metadataJson.put(key, metadataMap.getDouble(key));
+                        break;
+                    case String:
+                        metadataJson.put(key, metadataMap.getString(key));
+                        break;
+                    case Map:
+                        metadataJson.put(key, convertMapToJson(metadataMap.getMap(key)));
+                        break;
+                    case Array:
+                        metadataJson.put(key, convertArrayToJson(metadataMap.getArray(key)));
+                        break;
                 }
-            } catch (Exception e) {
-                Log.e(TAG, "Error setting metadata: " + e.getMessage());
             }
+            
+            // Set metadata using putMetadata()
+            charge.putMetadata(metadataJson);
+        } catch (Exception e) {
+            Log.e(TAG, "Error setting metadata: " + e.getMessage());
         }
+        }
+
     }
 
     private JSONObject convertMapToJson(ReadableMap readableMap) throws JSONException {
@@ -326,6 +346,8 @@ public class RNPaystackModule extends ReactContextBaseJavaModule {
         }
         return jsonArray;
     }
+
+
 
     private void createTransaction() {
         transaction = null;
