@@ -197,94 +197,68 @@ public class RNPaystackModule extends ReactContextBaseJavaModule {
         }
     }
 
-   private void validateFullTransaction() {
+    private void validateFullTransaction() {
 
-    String cardNumber = chargeOptions.getString("cardNumber");
-    String expiryMonth = chargeOptions.getString("expiryMonth");
-    String expiryYear = chargeOptions.getString("expiryYear");
-    String cvc = chargeOptions.getString("cvc");
-    String email = chargeOptions.getString("email");
-    int amountInKobo = chargeOptions.getInt("amountInKobo");
+        String cardNumber = chargeOptions.getString("cardNumber");
+        String expiryMonth = chargeOptions.getString("expiryMonth");
+        String expiryYear = chargeOptions.getString("expiryYear");
+        String cvc = chargeOptions.getString("cvc");
+        String email = chargeOptions.getString("email");
+        int amountInKobo = chargeOptions.getInt("amountInKobo");
 
-    validateCard(cardNumber, expiryMonth, expiryYear, cvc);
+        validateCard(cardNumber, expiryMonth, expiryYear, cvc);
 
-    charge = new Charge();
-    charge.setCard(card);
+        charge = new Charge();
+        charge.setCard(card);
 
-    if (isEmpty(email)) {
-        rejectPromise("E_INVALID_EMAIL", "Email cannot be empty");
-        return;
-    }
-
-    if (!Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
-        rejectPromise("E_INVALID_EMAIL", "Invalid email");
-        return;
-    }
-
-    charge.setEmail(email);
-
-    if (amountInKobo < 1) {
-        rejectPromise("E_INVALID_AMOUNT", "Invalid amount");
-        return;
-    }
-
-    charge.setAmount(amountInKobo);
-
-    if (hasStringKey("currency")) {
-        charge.setCurrency(chargeOptions.getString("currency"));
-    }
-
-    if (hasStringKey("plan")) {
-        charge.setPlan(chargeOptions.getString("plan"));
-    }
-
-    if (hasStringKey("subAccount")) {
-        charge.setSubaccount(chargeOptions.getString("subAccount"));
-
-        if (hasStringKey("bearer") && chargeOptions.getString("bearer").equals("subaccount")) {
-            charge.setBearer(Charge.Bearer.subaccount);
+        if (isEmpty(email)) {
+            rejectPromise("E_INVALID_EMAIL", "Email cannot be empty");
+            return;
         }
 
-        if (hasStringKey("bearer") && chargeOptions.getString("bearer").equals("account")) {
-            charge.setBearer(Charge.Bearer.account);
+        if (!Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+            rejectPromise("E_INVALID_EMAIL", "Invalid email");
+            return;
         }
 
-        if (hasIntKey("transactionCharge")) {
-            charge.setTransactionCharge(chargeOptions.getInt("transactionCharge"));
+        charge.setEmail(email);
+
+        if (amountInKobo < 1) {
+            rejectPromise("E_INVALID_AMOUNT", "Invalid amount");
+            return;
         }
-    }
 
-    if (hasStringKey("reference")) {
-        charge.setReference(chargeOptions.getString("reference"));
-    }
+        charge.setAmount(amountInKobo);
 
-    // Add the metadata handling logic
-    if (hasStringKey("metadata")) {
-        WritableMap metadataMap = chargeOptions.getMap("metadata");
+        if (hasStringKey("currency")) {
+            charge.setCurrency(chargeOptions.getString("currency"));
+        }
 
-        // Parse custom_fields if they exist
-        if (metadataMap.hasKey("custom_fields")) {
-            ReadableArray customFields = metadataMap.getArray("custom_fields");
-            JSONArray customFieldsArray = new JSONArray();
+        if (hasStringKey("plan")) {
+            charge.setPlan(chargeOptions.getString("plan"));
+        }
 
-            for (int i = 0; i < customFields.size(); i++) {
-                ReadableMap customField = customFields.getMap(i);
-                JSONObject customFieldObject = new JSONObject();
-                try {
-                    customFieldObject.put("display_name", customField.getString("display_name"));
-                    customFieldObject.put("variable_name", customField.getString("variable_name"));
-                    customFieldObject.put("value", customField.getString("value"));
-                    customFieldsArray.put(customFieldObject);
-                } catch (JSONException e) {
-                    e.printStackTrace();
-                }
+        if (hasStringKey("subAccount")) {
+            charge.setSubaccount(chargeOptions.getString("subAccount"));
+
+            if (hasStringKey("bearer") && chargeOptions.getString("bearer") == "subaccount") {
+                charge.setBearer(Charge.Bearer.subaccount);
             }
 
-            charge.setMetadata(customFieldsArray.toString());
-        }
-    }
-}
+            if (hasStringKey("bearer") && chargeOptions.getString("bearer") == "account") {
+                charge.setBearer(Charge.Bearer.account);
+            }
 
+            if (hasIntKey("transactionCharge")) {
+                charge.setTransactionCharge(chargeOptions.getInt("transactionCharge"));
+            }
+        }
+
+        if (hasStringKey("reference")) {
+            charge.setReference(chargeOptions.getString("reference"));
+        }
+
+    }
 
     private void createTransaction() {
 
