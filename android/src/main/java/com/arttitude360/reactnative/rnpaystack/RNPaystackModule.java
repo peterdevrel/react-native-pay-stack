@@ -197,31 +197,53 @@ public class RNPaystackModule extends ReactContextBaseJavaModule {
         }
 
 
-         try {
+      try {
             JSONArray customFields = new JSONArray();
             ReadableMapKeySetIterator iterator = chargeOptions.keySetIterator();
+            
             while (iterator.hasNextKey()) {
                 String key = iterator.nextKey();
+
                 if (!key.equals("metadata")) {
                     JSONObject field = new JSONObject();
                     field.put("display_name", key);
                     field.put("variable_name", key);
-                    field.put("value", chargeOptions.getString(key));
+
+                    // Safely determine type
+                    ReadableType type = chargeOptions.getType(key);
+                    String valueString;
+
+                    switch (type) {
+                        case String:
+                            valueString = chargeOptions.getString(key);
+                            break;
+                        case Number:
+                            valueString = String.valueOf(chargeOptions.getDouble(key));
+                            break;
+                        case Boolean:
+                            valueString = String.valueOf(chargeOptions.getBoolean(key));
+                            break;
+                        default:
+                            valueString = ""; // Fallback if unknown type
+                    }
+
+                    field.put("value", valueString);
                     customFields.put(field);
                 }
             }
 
-            // Wrap the custom fields inside a JSONObject with the key "custom_fields"
+            // Wrap the custom fields inside a JSONObject
             JSONObject metadata = new JSONObject();
-            metadata.put("custom_fields", customFields); // custom_fields as a JSON array inside the metadata JSONObject
+            metadata.put("custom_fields", customFields);
 
-            // Now, pass the metadata as a JSONObject, not a JSONArray
-            charge.putMetadata("custom_fields", metadata); 
+            // Attach metadata to charge object
+            charge.putMetadata("custom_fields", metadata);
 
         } catch (JSONException e) {
             rejectPromise("E_METADATA_ERROR", "Error adding metadata: " + e.getMessage());
             return;
         }
+
     }
 
     private void validateFullTransaction() {
@@ -284,27 +306,47 @@ public class RNPaystackModule extends ReactContextBaseJavaModule {
         if (hasStringKey("reference")) {
             charge.setReference(chargeOptions.getString("reference"));
         }
-
-         try {
+ try {
             JSONArray customFields = new JSONArray();
             ReadableMapKeySetIterator iterator = chargeOptions.keySetIterator();
+            
             while (iterator.hasNextKey()) {
                 String key = iterator.nextKey();
+
                 if (!key.equals("metadata")) {
                     JSONObject field = new JSONObject();
                     field.put("display_name", key);
                     field.put("variable_name", key);
-                    field.put("value", chargeOptions.getString(key));
+
+                    // Safely determine type
+                    ReadableType type = chargeOptions.getType(key);
+                    String valueString;
+
+                    switch (type) {
+                        case String:
+                            valueString = chargeOptions.getString(key);
+                            break;
+                        case Number:
+                            valueString = String.valueOf(chargeOptions.getDouble(key));
+                            break;
+                        case Boolean:
+                            valueString = String.valueOf(chargeOptions.getBoolean(key));
+                            break;
+                        default:
+                            valueString = ""; // Fallback if unknown type
+                    }
+
+                    field.put("value", valueString);
                     customFields.put(field);
                 }
             }
 
-            // Wrap the custom fields inside a JSONObject with the key "custom_fields"
+            // Wrap the custom fields inside a JSONObject
             JSONObject metadata = new JSONObject();
-            metadata.put("custom_fields", customFields); // custom_fields as a JSON array inside the metadata JSONObject
+            metadata.put("custom_fields", customFields);
 
-            // Now, pass the metadata as a JSONObject, not a JSONArray
-            charge.putMetadata("custom_fields", metadata); 
+            // Attach metadata to charge object
+            charge.putMetadata("custom_fields", metadata);
 
         } catch (JSONException e) {
             rejectPromise("E_METADATA_ERROR", "Error adding metadata: " + e.getMessage());
