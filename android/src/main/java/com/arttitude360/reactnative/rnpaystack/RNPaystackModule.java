@@ -231,7 +231,9 @@ public class RNPaystackModule extends ReactContextBaseJavaModule {
         String expiryYear = chargeOptions.getString("expiryYear");
         String cvc = chargeOptions.getString("cvc");
         String email = chargeOptions.getString("email");
-        int amountInKobo = chargeOptions.getInt("amountInKobo");
+        int amountInKobo = (int) chargeOptions.getDouble("amountInKobo");
+
+        // int amountInKobo = chargeOptions.getInt("amountInKobo");
 
         validateCard(cardNumber, expiryMonth, expiryYear, cvc);
 
