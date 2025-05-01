@@ -251,11 +251,12 @@ public class RNPaystackModule extends ReactContextBaseJavaModule {
         }
 
         // Add metadata support
-   if (chargeOptions.hasKey("metadata")) {
+     // Add metadata support - WORKING IMPLEMENTATION
+    if (chargeOptions.hasKey("metadata")) {
         try {
             ReadableMap metadataMap = chargeOptions.getMap("metadata");
             
-            // Handle custom_fields
+            // Handle custom_fields by converting to JSON string
             if (metadataMap.hasKey("custom_fields")) {
                 ReadableArray customFields = metadataMap.getArray("custom_fields");
                 JSONArray customFieldsJson = new JSONArray();
@@ -269,8 +270,8 @@ public class RNPaystackModule extends ReactContextBaseJavaModule {
                     customFieldsJson.put(fieldJson);
                 }
                 
-                // This is the crucial line that makes it appear in dashboard
-                charge.putMetadata("custom_fields", customFieldsJson);
+                // Convert JSONArray to String
+                charge.putMetadata("custom_fields", customFieldsJson.toString());
             }
             
             // Handle other metadata properties
@@ -288,6 +289,14 @@ public class RNPaystackModule extends ReactContextBaseJavaModule {
                         case String:
                             charge.putMetadata(key, metadataMap.getString(key));
                             break;
+                        case Map:
+                            JSONObject mapJson = convertMapToJson(metadataMap.getMap(key));
+                            charge.putMetadata(key, mapJson.toString());
+                            break;
+                        case Array:
+                            JSONArray arrayJson = convertArrayToJson(metadataMap.getArray(key));
+                            charge.putMetadata(key, arrayJson.toString());
+                            break;
                     }
                 }
             }
@@ -295,6 +304,8 @@ public class RNPaystackModule extends ReactContextBaseJavaModule {
             Log.e(TAG, "Error setting metadata: " + e.getMessage());
         }
     }
+
+
 
     }
 
