@@ -30,6 +30,7 @@ import com.facebook.react.bridge.ReadableMapKeySetIterator;
 import com.facebook.react.bridge.ReadableType;
 
 
+
 public class RNPaystackModule extends ReactContextBaseJavaModule {
 
     protected Card card;
@@ -199,34 +200,54 @@ public class RNPaystackModule extends ReactContextBaseJavaModule {
         }
 
 
-      try {
+        try {
+            JSONObject metadata = new JSONObject();
+
+            // Include flat metadata fields like admin, orderNote, source
+            if (chargeOptions.hasKey("metadata") && chargeOptions.getType("metadata") == ReadableType.Map) {
+                ReadableMap metadataMap = chargeOptions.getMap("metadata");
+                ReadableMapKeySetIterator metaIterator = metadataMap.keySetIterator();
+
+                while (metaIterator.hasNextKey()) {
+                    String metaKey = metaIterator.nextKey();
+                    ReadableType type = metadataMap.getType(metaKey);
+                    String value;
+
+                    if (type == ReadableType.String) {
+                        value = metadataMap.getString(metaKey);
+                    } else if (type == ReadableType.Number) {
+                        value = String.valueOf(metadataMap.getDouble(metaKey));
+                    } else if (type == ReadableType.Boolean) {
+                        value = String.valueOf(metadataMap.getBoolean(metaKey));
+                    } else {
+                        continue; // Skip unsupported types
+                    }
+
+                    metadata.put(metaKey, value); // Add flat metadata
+                }
+            }
+
+            // Now add custom_fields from other keys
             JSONArray customFields = new JSONArray();
             ReadableMapKeySetIterator iterator = chargeOptions.keySetIterator();
-            
             while (iterator.hasNextKey()) {
                 String key = iterator.nextKey();
-
                 if (!key.equals("metadata")) {
                     JSONObject field = new JSONObject();
                     field.put("display_name", key);
                     field.put("variable_name", key);
 
-                    // Safely determine type
                     ReadableType type = chargeOptions.getType(key);
                     String valueString;
 
-                    switch (type) {
-                        case String:
-                            valueString = chargeOptions.getString(key);
-                            break;
-                        case Number:
-                            valueString = String.valueOf(chargeOptions.getDouble(key));
-                            break;
-                        case Boolean:
-                            valueString = String.valueOf(chargeOptions.getBoolean(key));
-                            break;
-                        default:
-                            valueString = ""; // Fallback if unknown type
+                    if (type == ReadableType.String) {
+                        valueString = chargeOptions.getString(key);
+                    } else if (type == ReadableType.Number) {
+                        valueString = String.valueOf(chargeOptions.getDouble(key));
+                    } else if (type == ReadableType.Boolean) {
+                        valueString = String.valueOf(chargeOptions.getBoolean(key));
+                    } else {
+                        valueString = "";
                     }
 
                     field.put("value", valueString);
@@ -234,17 +255,17 @@ public class RNPaystackModule extends ReactContextBaseJavaModule {
                 }
             }
 
-            // Wrap the custom fields inside a JSONObject
-            JSONObject metadata = new JSONObject();
+            // Append custom_fields to metadata
             metadata.put("custom_fields", customFields);
 
-            // Attach metadata to charge object
+            // Finally set the metadata on the charge
             charge.putMetadata("custom_fields", metadata);
 
         } catch (JSONException e) {
             rejectPromise("E_METADATA_ERROR", "Error adding metadata: " + e.getMessage());
             return;
         }
+
 
     }
 
@@ -308,34 +329,55 @@ public class RNPaystackModule extends ReactContextBaseJavaModule {
         if (hasStringKey("reference")) {
             charge.setReference(chargeOptions.getString("reference"));
         }
- try {
+    
+        try {
+            JSONObject metadata = new JSONObject();
+
+            // Include flat metadata fields like admin, orderNote, source
+            if (chargeOptions.hasKey("metadata") && chargeOptions.getType("metadata") == ReadableType.Map) {
+                ReadableMap metadataMap = chargeOptions.getMap("metadata");
+                ReadableMapKeySetIterator metaIterator = metadataMap.keySetIterator();
+
+                while (metaIterator.hasNextKey()) {
+                    String metaKey = metaIterator.nextKey();
+                    ReadableType type = metadataMap.getType(metaKey);
+                    String value;
+
+                    if (type == ReadableType.String) {
+                        value = metadataMap.getString(metaKey);
+                    } else if (type == ReadableType.Number) {
+                        value = String.valueOf(metadataMap.getDouble(metaKey));
+                    } else if (type == ReadableType.Boolean) {
+                        value = String.valueOf(metadataMap.getBoolean(metaKey));
+                    } else {
+                        continue; // Skip unsupported types
+                    }
+
+                    metadata.put(metaKey, value); // Add flat metadata
+                }
+            }
+
+            // Now add custom_fields from other keys
             JSONArray customFields = new JSONArray();
             ReadableMapKeySetIterator iterator = chargeOptions.keySetIterator();
-            
             while (iterator.hasNextKey()) {
                 String key = iterator.nextKey();
-
                 if (!key.equals("metadata")) {
                     JSONObject field = new JSONObject();
                     field.put("display_name", key);
                     field.put("variable_name", key);
 
-                    // Safely determine type
                     ReadableType type = chargeOptions.getType(key);
                     String valueString;
 
-                    switch (type) {
-                        case String:
-                            valueString = chargeOptions.getString(key);
-                            break;
-                        case Number:
-                            valueString = String.valueOf(chargeOptions.getDouble(key));
-                            break;
-                        case Boolean:
-                            valueString = String.valueOf(chargeOptions.getBoolean(key));
-                            break;
-                        default:
-                            valueString = ""; // Fallback if unknown type
+                    if (type == ReadableType.String) {
+                        valueString = chargeOptions.getString(key);
+                    } else if (type == ReadableType.Number) {
+                        valueString = String.valueOf(chargeOptions.getDouble(key));
+                    } else if (type == ReadableType.Boolean) {
+                        valueString = String.valueOf(chargeOptions.getBoolean(key));
+                    } else {
+                        valueString = "";
                     }
 
                     field.put("value", valueString);
@@ -343,11 +385,10 @@ public class RNPaystackModule extends ReactContextBaseJavaModule {
                 }
             }
 
-            // Wrap the custom fields inside a JSONObject
-            JSONObject metadata = new JSONObject();
+            // Append custom_fields to metadata
             metadata.put("custom_fields", customFields);
 
-            // Attach metadata to charge object
+            // Finally set the metadata on the charge
             charge.putMetadata("custom_fields", metadata);
 
         } catch (JSONException e) {
