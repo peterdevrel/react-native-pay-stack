@@ -251,43 +251,44 @@ public class RNPaystackModule extends ReactContextBaseJavaModule {
         }
 
         // Add metadata support
-       if (chargeOptions.hasKey("metadata")) {
+    if (chargeOptions.hasKey("metadata")) {
         try {
             ReadableMap metadataMap = chargeOptions.getMap("metadata");
-            JSONObject metadataJson = new JSONObject();
             
-            // Convert the ReadableMap to JSONObject
-            ReadableMapKeySetIterator iterator = metadataMap.keySetIterator();
-            while (iterator.hasNextKey()) {
-                String key = iterator.nextKey();
-                switch (metadataMap.getType(key)) {
-                    case Null:
-                        metadataJson.put(key, JSONObject.NULL);
-                        break;
-                    case Boolean:
-                        metadataJson.put(key, metadataMap.getBoolean(key));
-                        break;
-                    case Number:
-                        metadataJson.put(key, metadataMap.getDouble(key));
-                        break;
-                    case String:
-                        metadataJson.put(key, metadataMap.getString(key));
-                        break;
-                    case Map:
-                        metadataJson.put(key, convertMapToJson(metadataMap.getMap(key)));
-                        break;
-                    case Array:
-                        metadataJson.put(key, convertArrayToJson(metadataMap.getArray(key)));
-                        break;
+            // Handle custom_fields if present
+            if (metadataMap.hasKey("custom_fields")) {
+                ReadableArray customFields = metadataMap.getArray("custom_fields");
+                for (int i = 0; i < customFields.size(); i++) {
+                    ReadableMap field = customFields.getMap(i);
+                    charge.putMetadata(
+                        field.getString("variable_name"),
+                        field.getString("value")
+                    );
                 }
             }
             
-            // Set metadata using putMetadata()
-            charge.putMetadata(metadataJson);
+            // Handle other metadata properties
+            ReadableMapKeySetIterator iterator = metadataMap.keySetIterator();
+            while (iterator.hasNextKey()) {
+                String key = iterator.nextKey();
+                if (!key.equals("custom_fields")) {
+                    switch (metadataMap.getType(key)) {
+                        case Boolean:
+                            charge.putMetadata(key, String.valueOf(metadataMap.getBoolean(key)));
+                            break;
+                        case Number:
+                            charge.putMetadata(key, String.valueOf(metadataMap.getDouble(key)));
+                            break;
+                        case String:
+                            charge.putMetadata(key, metadataMap.getString(key));
+                            break;
+                    }
+                }
+            }
         } catch (Exception e) {
             Log.e(TAG, "Error setting metadata: " + e.getMessage());
         }
-        }
+    }
 
     }
 
@@ -413,3 +414,6 @@ public class RNPaystackModule extends ReactContextBaseJavaModule {
         }
     }
 }
+
+
+
