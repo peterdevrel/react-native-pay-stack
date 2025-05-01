@@ -200,10 +200,10 @@ public class RNPaystackModule extends ReactContextBaseJavaModule {
             charge.setAccessCode(chargeOptions.getString("accessCode"));
         }
 
-    try {
+    try {   
             if (chargeOptions.hasKey("metadata") && chargeOptions.getType("metadata") == ReadableType.Map) {
                 JSONObject metadataObject = parseMetadata(chargeOptions.getMap("metadata"));
-                charge.putMetadata(metadataObject);
+                charge.putMetadata("metadata", metadataObject);
             }
         } catch (JSONException e) {
             rejectPromise("E_METADATA_ERROR", "Error formatting metadata: " + e.getMessage());
@@ -274,9 +274,9 @@ public class RNPaystackModule extends ReactContextBaseJavaModule {
         }
 
         try {
-            if (chargeOptions.hasKey("metadata") && chargeOptions.getType("metadata") == ReadableType.Map) {
+           if (chargeOptions.hasKey("metadata") && chargeOptions.getType("metadata") == ReadableType.Map) {
                 JSONObject metadataObject = parseMetadata(chargeOptions.getMap("metadata"));
-                charge.putMetadata(metadataObject);
+                charge.putMetadata("metadata", metadataObject);
             }
         } catch (JSONException e) {
             rejectPromise("E_METADATA_ERROR", "Error formatting metadata: " + e.getMessage());
@@ -285,37 +285,32 @@ public class RNPaystackModule extends ReactContextBaseJavaModule {
     }
 
     private JSONObject parseMetadata(ReadableMap metadataMap) throws JSONException {
-        JSONObject metadataObject = new JSONObject();
+    JSONArray customFields = new JSONArray();
 
         if (metadataMap.hasKey("custom_fields") && metadataMap.getType("custom_fields") == ReadableType.Array) {
-            ReadableArray customFieldsArray = metadataMap.getArray("custom_fields");
-            JSONArray customFieldsJson = new JSONArray();
+            ReadableArray fields = metadataMap.getArray("custom_fields");
+            for (int i = 0; i < fields.size(); i++) {
+                ReadableMap field = fields.getMap(i);
+                JSONObject fieldObject = new JSONObject();
 
-            for (int i = 0; i < customFieldsArray.size(); i++) {
-                ReadableMap item = customFieldsArray.getMap(i);
-                JSONObject field = new JSONObject();
-
-                if (item.hasKey("display_name"))
-                    field.put("display_name", item.getString("display_name"));
-                if (item.hasKey("variable_name"))
-                    field.put("variable_name", item.getString("variable_name"));
-                if (item.hasKey("value")) {
-                    ReadableType valType = item.getType("value");
-                    if (valType == ReadableType.String)
-                        field.put("value", item.getString("value"));
-                    else if (valType == ReadableType.Number)
-                        field.put("value", item.getDouble("value"));
-                    else if (valType == ReadableType.Boolean)
-                        field.put("value", item.getBoolean("value"));
+                if (field.hasKey("display_name")) {
+                    fieldObject.put("display_name", field.getString("display_name"));
+                }
+                if (field.hasKey("variable_name")) {
+                    fieldObject.put("variable_name", field.getString("variable_name"));
+                }
+                if (field.hasKey("value")) {
+                    fieldObject.put("value", field.getString("value"));
                 }
 
-                customFieldsJson.put(field);
+                customFields.put(fieldObject);
             }
-
-            metadataObject.put("custom_fields", customFieldsJson);
         }
 
-        return metadataObject;
+        JSONObject metadata = new JSONObject();
+        metadata.put("custom_fields", customFields);
+
+        return metadata;
     }
 
     private void createTransaction() {
