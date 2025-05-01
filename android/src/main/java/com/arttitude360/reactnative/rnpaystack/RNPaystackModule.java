@@ -254,8 +254,17 @@ public class RNPaystackModule extends ReactContextBaseJavaModule {
         if (chargeOptions.hasKey("metadata")) {
             try {
                 ReadableMap metadataMap = chargeOptions.getMap("metadata");
-                JSONObject metadataJson = convertMapToJson(metadataMap);
-                charge.setMetadata(metadataJson);
+                if (metadataMap.hasKey("custom_fields")) {
+                    ReadableArray customFields = metadataMap.getArray("custom_fields");
+                    for (int i = 0; i < customFields.size(); i++) {
+                        ReadableMap field = customFields.getMap(i);
+                        charge.addCustomField(
+                            field.getString("variable_name"),
+                            field.getString("display_name"),
+                            field.getString("value")
+                        );
+                    }
+                }
             } catch (Exception e) {
                 Log.e(TAG, "Error setting metadata: " + e.getMessage());
             }
