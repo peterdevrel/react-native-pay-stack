@@ -200,71 +200,49 @@ public class RNPaystackModule extends ReactContextBaseJavaModule {
         }
 
 
-        try {
-            JSONObject metadata = new JSONObject();
-
-            // Include flat metadata fields like admin, orderNote, source
+       try {
             if (chargeOptions.hasKey("metadata") && chargeOptions.getType("metadata") == ReadableType.Map) {
                 ReadableMap metadataMap = chargeOptions.getMap("metadata");
-                ReadableMapKeySetIterator metaIterator = metadataMap.keySetIterator();
 
-                while (metaIterator.hasNextKey()) {
-                    String metaKey = metaIterator.nextKey();
-                    ReadableType type = metadataMap.getType(metaKey);
-                    String value;
+                JSONObject metadataObject = new JSONObject();
+                if (metadataMap.hasKey("custom_fields") && metadataMap.getType("custom_fields") == ReadableType.Array) {
+                    ReadableArray customFieldsArray = metadataMap.getArray("custom_fields");
+                    JSONArray customFieldsJson = new JSONArray();
 
-                    if (type == ReadableType.String) {
-                        value = metadataMap.getString(metaKey);
-                    } else if (type == ReadableType.Number) {
-                        value = String.valueOf(metadataMap.getDouble(metaKey));
-                    } else if (type == ReadableType.Boolean) {
-                        value = String.valueOf(metadataMap.getBoolean(metaKey));
-                    } else {
-                        continue; // Skip unsupported types
+                    for (int i = 0; i < customFieldsArray.size(); i++) {
+                        ReadableMap item = customFieldsArray.getMap(i);
+                        JSONObject field = new JSONObject();
+
+                        if (item.hasKey("display_name"))
+                            field.put("display_name", item.getString("display_name"));
+                        if (item.hasKey("variable_name"))
+                            field.put("variable_name", item.getString("variable_name"));
+                        if (item.hasKey("value")) {
+                            ReadableType valType = item.getType("value");
+                            if (valType == ReadableType.String) {
+                                field.put("value", item.getString("value"));
+                            } else if (valType == ReadableType.Number) {
+                                field.put("value", item.getDouble("value"));
+                            } else if (valType == ReadableType.Boolean) {
+                                field.put("value", item.getBoolean("value"));
+                            }
+                        }
+
+                        customFieldsJson.put(field);
                     }
 
-                    metadata.put(metaKey, value); // Add flat metadata
+                    // Now set custom_fields in the metadata object
+                    metadataObject.put("custom_fields", customFieldsJson);
                 }
+
+                // Attach the metadata to the charge
+                charge.putMetadata("metadata", metadataObject);
             }
-
-            // Now add custom_fields from other keys
-            JSONArray customFields = new JSONArray();
-            ReadableMapKeySetIterator iterator = chargeOptions.keySetIterator();
-            while (iterator.hasNextKey()) {
-                String key = iterator.nextKey();
-                if (!key.equals("metadata")) {
-                    JSONObject field = new JSONObject();
-                    field.put("display_name", key);
-                    field.put("variable_name", key);
-
-                    ReadableType type = chargeOptions.getType(key);
-                    String valueString;
-
-                    if (type == ReadableType.String) {
-                        valueString = chargeOptions.getString(key);
-                    } else if (type == ReadableType.Number) {
-                        valueString = String.valueOf(chargeOptions.getDouble(key));
-                    } else if (type == ReadableType.Boolean) {
-                        valueString = String.valueOf(chargeOptions.getBoolean(key));
-                    } else {
-                        valueString = "";
-                    }
-
-                    field.put("value", valueString);
-                    customFields.put(field);
-                }
-            }
-
-            // Append custom_fields to metadata
-            metadata.put("custom_fields", customFields);
-
-            // Finally set the metadata on the charge
-            charge.putMetadata("metadata", metadata);
-
         } catch (JSONException e) {
-            rejectPromise("E_METADATA_ERROR", "Error adding metadata: " + e.getMessage());
+            rejectPromise("E_METADATA_ERROR", "Error formatting metadata: " + e.getMessage());
             return;
         }
+
 
 
     }
@@ -330,71 +308,49 @@ public class RNPaystackModule extends ReactContextBaseJavaModule {
             charge.setReference(chargeOptions.getString("reference"));
         }
     
-        try {
-            JSONObject metadata = new JSONObject();
-
-            // Include flat metadata fields like admin, orderNote, source
+      try {
             if (chargeOptions.hasKey("metadata") && chargeOptions.getType("metadata") == ReadableType.Map) {
                 ReadableMap metadataMap = chargeOptions.getMap("metadata");
-                ReadableMapKeySetIterator metaIterator = metadataMap.keySetIterator();
 
-                while (metaIterator.hasNextKey()) {
-                    String metaKey = metaIterator.nextKey();
-                    ReadableType type = metadataMap.getType(metaKey);
-                    String value;
+                JSONObject metadataObject = new JSONObject();
+                if (metadataMap.hasKey("custom_fields") && metadataMap.getType("custom_fields") == ReadableType.Array) {
+                    ReadableArray customFieldsArray = metadataMap.getArray("custom_fields");
+                    JSONArray customFieldsJson = new JSONArray();
 
-                    if (type == ReadableType.String) {
-                        value = metadataMap.getString(metaKey);
-                    } else if (type == ReadableType.Number) {
-                        value = String.valueOf(metadataMap.getDouble(metaKey));
-                    } else if (type == ReadableType.Boolean) {
-                        value = String.valueOf(metadataMap.getBoolean(metaKey));
-                    } else {
-                        continue; // Skip unsupported types
+                    for (int i = 0; i < customFieldsArray.size(); i++) {
+                        ReadableMap item = customFieldsArray.getMap(i);
+                        JSONObject field = new JSONObject();
+
+                        if (item.hasKey("display_name"))
+                            field.put("display_name", item.getString("display_name"));
+                        if (item.hasKey("variable_name"))
+                            field.put("variable_name", item.getString("variable_name"));
+                        if (item.hasKey("value")) {
+                            ReadableType valType = item.getType("value");
+                            if (valType == ReadableType.String) {
+                                field.put("value", item.getString("value"));
+                            } else if (valType == ReadableType.Number) {
+                                field.put("value", item.getDouble("value"));
+                            } else if (valType == ReadableType.Boolean) {
+                                field.put("value", item.getBoolean("value"));
+                            }
+                        }
+
+                        customFieldsJson.put(field);
                     }
 
-                    metadata.put(metaKey, value); // Add flat metadata
+                    // Now set custom_fields in the metadata object
+                    metadataObject.put("custom_fields", customFieldsJson);
                 }
+
+                // Attach the metadata to the charge
+                charge.putMetadata("metadata", metadataObject);
             }
-
-            // Now add custom_fields from other keys
-            JSONArray customFields = new JSONArray();
-            ReadableMapKeySetIterator iterator = chargeOptions.keySetIterator();
-            while (iterator.hasNextKey()) {
-                String key = iterator.nextKey();
-                if (!key.equals("metadata")) {
-                    JSONObject field = new JSONObject();
-                    field.put("display_name", key);
-                    field.put("variable_name", key);
-
-                    ReadableType type = chargeOptions.getType(key);
-                    String valueString;
-
-                    if (type == ReadableType.String) {
-                        valueString = chargeOptions.getString(key);
-                    } else if (type == ReadableType.Number) {
-                        valueString = String.valueOf(chargeOptions.getDouble(key));
-                    } else if (type == ReadableType.Boolean) {
-                        valueString = String.valueOf(chargeOptions.getBoolean(key));
-                    } else {
-                        valueString = "";
-                    }
-
-                    field.put("value", valueString);
-                    customFields.put(field);
-                }
-            }
-
-            // Append custom_fields to metadata
-            metadata.put("custom_fields", customFields);
-
-            // Finally set the metadata on the charge
-            charge.putMetadata("metadata", metadata);
-
         } catch (JSONException e) {
-            rejectPromise("E_METADATA_ERROR", "Error adding metadata: " + e.getMessage());
+            rejectPromise("E_METADATA_ERROR", "Error formatting metadata: " + e.getMessage());
             return;
         }
+
 
     }
 
