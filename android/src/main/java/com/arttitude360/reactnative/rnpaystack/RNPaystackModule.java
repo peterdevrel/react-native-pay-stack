@@ -76,9 +76,7 @@ public class RNPaystackModule extends ReactContextBaseJavaModule {
 
     @ReactMethod
     public void chargeCard(ReadableMap cardData, final Promise promise) {
-
         this.chargeOptions = null;
-
         this.pendingPromise = promise;
         this.chargeOptions = cardData;
 
@@ -90,15 +88,12 @@ public class RNPaystackModule extends ReactContextBaseJavaModule {
             } catch (Exception error) {
                 rejectPromise("E_CHARGE_ERROR", error.getMessage());
             }
-
         }
     }
 
     @ReactMethod
     public void chargeCardWithAccessCode(ReadableMap cardData, final Promise promise) {
-
         this.chargeOptions = null;
-
         this.pendingPromise = promise;
         this.chargeOptions = cardData;
 
@@ -110,12 +105,10 @@ public class RNPaystackModule extends ReactContextBaseJavaModule {
             } catch (Exception error) {
                 rejectPromise("E_CHARGE_ERROR", error.getMessage());
             }
-
         }
     }
 
     private void validateCard(String cardNumber, String expiryMonth, String expiryYear, String cvc) {
-
         if (isEmpty(cardNumber)) {
             rejectPromise("E_INVALID_NUMBER", "Empty card number");
             return;
@@ -198,7 +191,6 @@ public class RNPaystackModule extends ReactContextBaseJavaModule {
     }
 
     private void validateFullTransaction() {
-
         String cardNumber = chargeOptions.getString("cardNumber");
         String expiryMonth = chargeOptions.getString("expiryMonth");
         String expiryYear = chargeOptions.getString("expiryYear");
@@ -258,17 +250,81 @@ public class RNPaystackModule extends ReactContextBaseJavaModule {
             charge.setReference(chargeOptions.getString("reference"));
         }
 
+        // Add metadata support
+        if (chargeOptions.hasKey("metadata")) {
+            try {
+                ReadableMap metadataMap = chargeOptions.getMap("metadata");
+                JSONObject metadataJson = convertMapToJson(metadataMap);
+                charge.setMetadata(metadataJson);
+            } catch (Exception e) {
+                Log.e(TAG, "Error setting metadata: " + e.getMessage());
+            }
+        }
+    }
+
+    private JSONObject convertMapToJson(ReadableMap readableMap) throws JSONException {
+        JSONObject jsonObject = new JSONObject();
+        ReadableMapKeySetIterator iterator = readableMap.keySetIterator();
+        while (iterator.hasNextKey()) {
+            String key = iterator.nextKey();
+            switch (readableMap.getType(key)) {
+                case Null:
+                    jsonObject.put(key, JSONObject.NULL);
+                    break;
+                case Boolean:
+                    jsonObject.put(key, readableMap.getBoolean(key));
+                    break;
+                case Number:
+                    jsonObject.put(key, readableMap.getDouble(key));
+                    break;
+                case String:
+                    jsonObject.put(key, readableMap.getString(key));
+                    break;
+                case Map:
+                    jsonObject.put(key, convertMapToJson(readableMap.getMap(key)));
+                    break;
+                case Array:
+                    jsonObject.put(key, convertArrayToJson(readableMap.getArray(key)));
+                    break;
+            }
+        }
+        return jsonObject;
+    }
+
+    private JSONArray convertArrayToJson(ReadableArray readableArray) throws JSONException {
+        JSONArray jsonArray = new JSONArray();
+        for (int i = 0; i < readableArray.size(); i++) {
+            switch (readableArray.getType(i)) {
+                case Null:
+                    jsonArray.put(JSONObject.NULL);
+                    break;
+                case Boolean:
+                    jsonArray.put(readableArray.getBoolean(i));
+                    break;
+                case Number:
+                    jsonArray.put(readableArray.getDouble(i));
+                    break;
+                case String:
+                    jsonArray.put(readableArray.getString(i));
+                    break;
+                case Map:
+                    jsonArray.put(convertMapToJson(readableArray.getMap(i)));
+                    break;
+                case Array:
+                    jsonArray.put(convertArrayToJson(readableArray.getArray(i)));
+                    break;
+            }
+        }
+        return jsonArray;
     }
 
     private void createTransaction() {
-
         transaction = null;
         Activity currentActivity = getCurrentActivity();
 
         PaystackSdk.chargeCard(currentActivity, charge, new Paystack.TransactionCallback() {
             @Override
             public void onSuccess(Transaction transaction) {
-
                 // This is called only after transaction is successful
                 RNPaystackModule.this.transaction = transaction;
 
@@ -297,7 +353,6 @@ public class RNPaystackModule extends ReactContextBaseJavaModule {
                             transaction.getReference() + " concluded with error: " + error.getMessage());
                 }
             }
-
         });
     }
 
@@ -326,5 +381,4 @@ public class RNPaystackModule extends ReactContextBaseJavaModule {
             this.pendingPromise = null;
         }
     }
-
 }
