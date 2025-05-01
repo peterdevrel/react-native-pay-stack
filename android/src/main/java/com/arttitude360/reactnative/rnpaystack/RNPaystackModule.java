@@ -30,7 +30,6 @@ import com.facebook.react.bridge.ReadableMapKeySetIterator;
 import com.facebook.react.bridge.ReadableType;
 
 
-
 public class RNPaystackModule extends ReactContextBaseJavaModule {
 
     protected Card card;
@@ -77,10 +76,8 @@ public class RNPaystackModule extends ReactContextBaseJavaModule {
         }
     }
 
-
     @ReactMethod
     public void chargeCard(ReadableMap cardData, final Promise promise) {
-
         this.chargeOptions = null;
 
         this.pendingPromise = promise;
@@ -94,13 +91,11 @@ public class RNPaystackModule extends ReactContextBaseJavaModule {
             } catch (Exception error) {
                 rejectPromise("E_CHARGE_ERROR", error.getMessage());
             }
-
         }
     }
 
     @ReactMethod
     public void chargeCardWithAccessCode(ReadableMap cardData, final Promise promise) {
-
         this.chargeOptions = null;
 
         this.pendingPromise = promise;
@@ -114,7 +109,6 @@ public class RNPaystackModule extends ReactContextBaseJavaModule {
             } catch (Exception error) {
                 rejectPromise("E_CHARGE_ERROR", error.getMessage());
             }
-
         }
     }
 
@@ -200,16 +194,21 @@ public class RNPaystackModule extends ReactContextBaseJavaModule {
             charge.setAccessCode(chargeOptions.getString("accessCode"));
         }
 
-    try {   
+        try {   
             if (chargeOptions.hasKey("metadata") && chargeOptions.getType("metadata") == ReadableType.Map) {
-                JSONObject metadataObject = parseMetadata(chargeOptions.getMap("metadata"));
-                charge.putMetadata("metadata", metadataObject);
+                ReadableMap metadataMap = chargeOptions.getMap("metadata");
+                ReadableMapKeySetIterator iterator = metadataMap.keySetIterator();
+
+                // Loop through the metadata keys and add them one by one
+                while (iterator.hasNextKey()) {
+                    String key = iterator.nextKey();
+                    String value = metadataMap.getString(key);
+                    charge.putMetadata(key, value); // Set key-value pairs
+                }
             }
         } catch (JSONException e) {
             rejectPromise("E_METADATA_ERROR", "Error formatting metadata: " + e.getMessage());
         }
-
-
     }
 
     private void validateFullTransaction() {
@@ -274,54 +273,29 @@ public class RNPaystackModule extends ReactContextBaseJavaModule {
         }
 
         try {
-           if (chargeOptions.hasKey("metadata") && chargeOptions.getType("metadata") == ReadableType.Map) {
-                JSONObject metadataObject = parseMetadata(chargeOptions.getMap("metadata"));
-                charge.putMetadata("metadata", metadataObject);
+            if (chargeOptions.hasKey("metadata") && chargeOptions.getType("metadata") == ReadableType.Map) {
+                ReadableMap metadataMap = chargeOptions.getMap("metadata");
+                ReadableMapKeySetIterator iterator = metadataMap.keySetIterator();
+
+                // Loop through the metadata keys and add them one by one
+                while (iterator.hasNextKey()) {
+                    String key = iterator.nextKey();
+                    String value = metadataMap.getString(key);
+                    charge.putMetadata(key, value); // Set key-value pairs
+                }
             }
         } catch (JSONException e) {
             rejectPromise("E_METADATA_ERROR", "Error formatting metadata: " + e.getMessage());
         }
-
-    }
-
-    private JSONObject parseMetadata(ReadableMap metadataMap) throws JSONException {
-    JSONArray customFields = new JSONArray();
-
-        if (metadataMap.hasKey("custom_fields") && metadataMap.getType("custom_fields") == ReadableType.Array) {
-            ReadableArray fields = metadataMap.getArray("custom_fields");
-            for (int i = 0; i < fields.size(); i++) {
-                ReadableMap field = fields.getMap(i);
-                JSONObject fieldObject = new JSONObject();
-
-                if (field.hasKey("display_name")) {
-                    fieldObject.put("display_name", field.getString("display_name"));
-                }
-                if (field.hasKey("variable_name")) {
-                    fieldObject.put("variable_name", field.getString("variable_name"));
-                }
-                if (field.hasKey("value")) {
-                    fieldObject.put("value", field.getString("value"));
-                }
-
-                customFields.put(fieldObject);
-            }
-        }
-
-        JSONObject metadata = new JSONObject();
-        metadata.put("custom_fields", customFields);
-
-        return metadata;
     }
 
     private void createTransaction() {
-
         transaction = null;
         Activity currentActivity = getCurrentActivity();
 
         PaystackSdk.chargeCard(currentActivity, charge, new Paystack.TransactionCallback() {
             @Override
             public void onSuccess(Transaction transaction) {
-
                 // This is called only after transaction is successful
                 RNPaystackModule.this.transaction = transaction;
 
@@ -350,7 +324,6 @@ public class RNPaystackModule extends ReactContextBaseJavaModule {
                             transaction.getReference() + " concluded with error: " + error.getMessage());
                 }
             }
-
         });
     }
 
@@ -379,7 +352,4 @@ public class RNPaystackModule extends ReactContextBaseJavaModule {
             this.pendingPromise = null;
         }
     }
-
-
-
 }
