@@ -259,7 +259,7 @@ public class RNPaystackModule extends ReactContextBaseJavaModule {
             metadata.put("custom_fields", customFields);
 
             // Finally set the metadata on the charge
-            charge.putMetadata("custom_fields", metadata);
+            charge.putMetadata("metadata", metadata);
 
         } catch (JSONException e) {
             rejectPromise("E_METADATA_ERROR", "Error adding metadata: " + e.getMessage());
@@ -389,7 +389,7 @@ public class RNPaystackModule extends ReactContextBaseJavaModule {
             metadata.put("custom_fields", customFields);
 
             // Finally set the metadata on the charge
-            charge.putMetadata("custom_fields", metadata);
+            charge.putMetadata("metadata", metadata);
 
         } catch (JSONException e) {
             rejectPromise("E_METADATA_ERROR", "Error adding metadata: " + e.getMessage());
