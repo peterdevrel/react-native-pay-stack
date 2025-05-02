@@ -2,6 +2,9 @@ package com.arttitude360.reactnative.rnpaystack;
 
 import android.app.Activity;
 import android.util.Log;
+import android.net.Uri;
+import android.os.Bundle;
+import android.content.Intent;
 import android.util.Patterns;
 
 import co.paystack.android.Paystack;
@@ -10,24 +13,20 @@ import co.paystack.android.model.Card;
 import co.paystack.android.model.Charge;
 import co.paystack.android.Transaction;
 
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import com.facebook.react.bridge.Arguments;
 import com.facebook.react.bridge.Promise;
 import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReactContextBaseJavaModule;
 import com.facebook.react.bridge.ReactMethod;
 import com.facebook.react.bridge.WritableMap;
+import com.facebook.react.bridge.WritableNativeMap;
 import com.facebook.react.bridge.ReadableArray;
 import com.facebook.react.bridge.ReadableMap;
 import com.facebook.react.bridge.ReadableMapKeySetIterator;
-
-import org.json.JSONObject;
-import org.json.JSONException;
-
-import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 public class RNPaystackModule extends ReactContextBaseJavaModule {
 
@@ -41,11 +40,22 @@ public class RNPaystackModule extends ReactContextBaseJavaModule {
     private String mPublicKey;
 
     public static final String TAG = "RNPaystack";
+
     public static String REACT_CLASS = "RNPaystackModule";
+
+    private static RNPaystackModule sInstance = null;
+
+    public static RNPaystackModule getInstance() {
+        return sInstance;
+    }
 
     public RNPaystackModule(ReactApplicationContext reactContext) {
         super(reactContext);
+
         this.reactContext = reactContext;
+        sInstance = this;
+
+        // Initialize PaystackSdk
         PaystackSdk.initialize(this.reactContext);
     }
 
@@ -57,6 +67,7 @@ public class RNPaystackModule extends ReactContextBaseJavaModule {
     @ReactMethod
     public void init(ReadableMap options) {
         String newPublicKey = options.getString("publicKey");
+
         if (newPublicKey != null) {
             mPublicKey = newPublicKey;
             PaystackSdk.setPublicKey(newPublicKey);
@@ -80,12 +91,30 @@ public class RNPaystackModule extends ReactContextBaseJavaModule {
         }
     }
 
+    @ReactMethod
+    public void chargeCardWithAccessCode(ReadableMap cardData, final Promise promise) {
+        this.chargeOptions = null;
+        this.pendingPromise = promise;
+        this.chargeOptions = cardData;
+
+        validateAccessCodeTransaction();
+
+        if (card != null && card.isValid()) {
+            try {
+                createTransaction();
+            } catch (Exception error) {
+                rejectPromise("E_CHARGE_ERROR", error.getMessage());
+            }
+        }
+    }
+
     private void validateCard(String cardNumber, String expiryMonth, String expiryYear, String cvc) {
         if (isEmpty(cardNumber)) {
             rejectPromise("E_INVALID_NUMBER", "Empty card number");
             return;
         }
 
+        // build card object with ONLY the number, update the other fields later
         card = new Card.Builder(cardNumber, 0, 0, "").build();
 
         if (!card.validNumber()) {
@@ -93,13 +122,16 @@ public class RNPaystackModule extends ReactContextBaseJavaModule {
             return;
         }
 
+        // validate cvc
         if (isEmpty(cvc)) {
             rejectPromise("E_INVALID_CVC", "Empty CVC");
             return;
         }
 
+        // update the cvc field of the card
         card.setCvc(cvc);
 
+        // check that it's valid
         if (!card.validCVC()) {
             rejectPromise("E_INVALID_CVC", "Invalid CVC");
             return;
@@ -108,29 +140,53 @@ public class RNPaystackModule extends ReactContextBaseJavaModule {
         int month = -1;
         try {
             month = Integer.parseInt(expiryMonth);
-        } catch (Exception ignored) {}
+        } catch (Exception ignored) {
+        }
 
+        // validate expiry month
         if (month < 1) {
             rejectPromise("E_INVALID_MONTH", "Invalid expiration month");
             return;
         }
 
+        // update the expiryMonth field of the card
         card.setExpiryMonth(month);
 
         int year = -1;
         try {
             year = Integer.parseInt(expiryYear);
-        } catch (Exception ignored) {}
+        } catch (Exception ignored) {
+        }
 
+        // validate expiry year
         if (year < 1) {
             rejectPromise("E_INVALID_YEAR", "Invalid expiration year");
             return;
         }
 
+        // update the expiryYear field of the card
         card.setExpiryYear(year);
 
+        // validate expiry
         if (!card.validExpiryDate()) {
             rejectPromise("E_INVALID_DATE", "Invalid expiration date");
+            return;
+        }
+    }
+
+    private void validateAccessCodeTransaction() {
+        String cardNumber = chargeOptions.getString("cardNumber");
+        String expiryMonth = chargeOptions.getString("expiryMonth");
+        String expiryYear = chargeOptions.getString("expiryYear");
+        String cvc = chargeOptions.getString("cvc");
+
+        validateCard(cardNumber, expiryMonth, expiryYear, cvc);
+
+        charge = new Charge();
+        charge.setCard(card);
+
+        if (hasStringKey("accessCode")) {
+            charge.setAccessCode(chargeOptions.getString("accessCode"));
         }
     }
 
@@ -166,133 +222,134 @@ public class RNPaystackModule extends ReactContextBaseJavaModule {
 
         charge.setAmount(amountInKobo);
 
-        // METADATA IMPLEMENTATION USING Map<String, Object>
-        if (chargeOptions.hasKey("metadata")) {
-            try {
-                ReadableMap metadataMap = chargeOptions.getMap("metadata");
-                Map<String, Object> metadata = new HashMap<>();
+        if (hasStringKey("currency")) {
+            charge.setCurrency(chargeOptions.getString("currency"));
+        }
 
-                // Handle custom_fields
-                if (metadataMap.hasKey("custom_fields")) {
-                    List<Map<String, String>> customFieldsList = new ArrayList<>();
-                    ReadableArray customFields = metadataMap.getArray("custom_fields");
-                    
-                    for (int i = 0; i < customFields.size(); i++) {
-                        ReadableMap field = customFields.getMap(i);
-                        Map<String, String> fieldMap = new HashMap<>();
-                        fieldMap.put("display_name", field.getString("display_name"));
-                        fieldMap.put("variable_name", field.getString("variable_name"));
-                        fieldMap.put("value", field.getString("value"));
-                        customFieldsList.add(fieldMap);
-                    }
-                    metadata.put("custom_fields", customFieldsList);
-                }
+        if (hasStringKey("plan")) {
+            charge.setPlan(chargeOptions.getString("plan"));
+        }
 
-                // Add other metadata fields
-                ReadableMapKeySetIterator iterator = metadataMap.keySetIterator();
-                while (iterator.hasNextKey()) {
-                    String key = iterator.nextKey();
-                    if (!key.equals("custom_fields")) {
-                        switch (metadataMap.getType(key)) {
-                            case Boolean:
-                                metadata.put(key, metadataMap.getBoolean(key));
-                                break;
-                            case Number:
-                                metadata.put(key, metadataMap.getDouble(key));
-                                break;
-                            case String:
-                                metadata.put(key, metadataMap.getString(key));
-                                break;
-                            case Map:
-                                metadata.put(key, convertReadableMap(metadataMap.getMap(key)));
-                                break;
-                            case Array:
-                                metadata.put(key, convertReadableArray(metadataMap.getArray(key)));
-                                break;
-                        }
-                    }
-                }
+        if (hasStringKey("subAccount")) {
+            charge.setSubaccount(chargeOptions.getString("subAccount"));
 
-                // Set the metadata using reflection
-                try {
-                    Method setMetadata = charge.getClass().getDeclaredMethod("setMetadata", Map.class);
-                    setMetadata.setAccessible(true);
-                    setMetadata.invoke(charge, metadata);
-                    Log.d(TAG, "Metadata set successfully via reflection");
-                } catch (Exception e) {
-                    Log.e(TAG, "Error setting metadata via reflection: " + e.getMessage());
-                    // Fallback to JSON string approach
-                    try {
-                        JSONObject metadataJson = new JSONObject(metadata);
-                        charge.getClass()
-                            .getMethod("putMetadata", String.class, String.class)
-                            .invoke(charge, "custom_metadata", metadataJson.toString());
-                    } catch (Exception ex) {
-                        Log.e(TAG, "Failed to set metadata via fallback: " + ex.getMessage());
-                    }
-                }
-
-            } catch (Exception e) {
-                Log.e(TAG, "Error processing metadata: " + e.getMessage());
+            if (hasStringKey("bearer") && chargeOptions.getString("bearer") == "subaccount") {
+                charge.setBearer(Charge.Bearer.subaccount);
             }
+
+            if (hasStringKey("bearer") && chargeOptions.getString("bearer") == "account") {
+                charge.setBearer(Charge.Bearer.account);
+            }
+
+            if (hasIntKey("transactionCharge")) {
+                charge.setTransactionCharge(chargeOptions.getInt("transactionCharge"));
+            }
+        }
+
+        if (hasStringKey("reference")) {
+            charge.setReference(chargeOptions.getString("reference"));
+        }
+
+
+
+    // Handle metadata - SIMPLIFIED WORKING VERSION
+    
+    if (chargeOptions.hasKey("metadata")) {
+        try {
+            ReadableMap metadataMap = chargeOptions.getMap("metadata");
+            
+            // 1. Handle custom_fields (no prefix needed)
+            if (metadataMap.hasKey("custom_fields")) {
+                ReadableArray customFields = metadataMap.getArray("custom_fields");
+                for (int i = 0; i < customFields.size(); i++) {
+                    ReadableMap field = customFields.getMap(i);
+                    charge.putMetadata(
+                        field.getString("variable_name"), // Raw field name
+                        field.getString("value")
+                    );
+                }
+            }
+
+            // 2. Direct metadata fields
+            ReadableMapKeySetIterator iterator = metadataMap.keySetIterator();
+            while (iterator.hasNextKey()) {
+                String key = iterator.nextKey();
+                if (!key.equals("custom_fields")) {
+                    charge.putMetadata(
+                        key,
+                        metadataMap.getString(key) // Auto-converts all types to String
+                    );
+                }
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Metadata error: " + e.getMessage());
         }
     }
 
-    private Map<String, Object> convertReadableMap(ReadableMap readableMap) {
-        Map<String, Object> map = new HashMap<>();
+
+
+
+
+
+    }
+
+    private JSONObject convertMapToJson(ReadableMap readableMap) throws JSONException {
+        JSONObject jsonObject = new JSONObject();
         ReadableMapKeySetIterator iterator = readableMap.keySetIterator();
         while (iterator.hasNextKey()) {
             String key = iterator.nextKey();
             switch (readableMap.getType(key)) {
                 case Null:
-                    map.put(key, null);
+                    jsonObject.put(key, JSONObject.NULL);
                     break;
                 case Boolean:
-                    map.put(key, readableMap.getBoolean(key));
+                    jsonObject.put(key, readableMap.getBoolean(key));
                     break;
                 case Number:
-                    map.put(key, readableMap.getDouble(key));
+                    jsonObject.put(key, readableMap.getDouble(key));
                     break;
                 case String:
-                    map.put(key, readableMap.getString(key));
+                    jsonObject.put(key, readableMap.getString(key));
                     break;
                 case Map:
-                    map.put(key, convertReadableMap(readableMap.getMap(key)));
+                    jsonObject.put(key, convertMapToJson(readableMap.getMap(key)));
                     break;
                 case Array:
-                    map.put(key, convertReadableArray(readableMap.getArray(key)));
+                    jsonObject.put(key, convertArrayToJson(readableMap.getArray(key)));
                     break;
             }
         }
-        return map;
+        return jsonObject;
     }
 
-    private List<Object> convertReadableArray(ReadableArray readableArray) {
-        List<Object> list = new ArrayList<>();
+    private JSONArray convertArrayToJson(ReadableArray readableArray) throws JSONException {
+        JSONArray jsonArray = new JSONArray();
         for (int i = 0; i < readableArray.size(); i++) {
             switch (readableArray.getType(i)) {
                 case Null:
-                    list.add(null);
+                    jsonArray.put(JSONObject.NULL);
                     break;
                 case Boolean:
-                    list.add(readableArray.getBoolean(i));
+                    jsonArray.put(readableArray.getBoolean(i));
                     break;
                 case Number:
-                    list.add(readableArray.getDouble(i));
+                    jsonArray.put(readableArray.getDouble(i));
                     break;
                 case String:
-                    list.add(readableArray.getString(i));
+                    jsonArray.put(readableArray.getString(i));
                     break;
                 case Map:
-                    list.add(convertReadableMap(readableArray.getMap(i)));
+                    jsonArray.put(convertMapToJson(readableArray.getMap(i)));
                     break;
                 case Array:
-                    list.add(convertReadableArray(readableArray.getArray(i)));
+                    jsonArray.put(convertArrayToJson(readableArray.getArray(i)));
                     break;
             }
         }
-        return list;
+        return jsonArray;
     }
+
+
 
     private void createTransaction() {
         transaction = null;
@@ -301,18 +358,27 @@ public class RNPaystackModule extends ReactContextBaseJavaModule {
         PaystackSdk.chargeCard(currentActivity, charge, new Paystack.TransactionCallback() {
             @Override
             public void onSuccess(Transaction transaction) {
+                // This is called only after transaction is successful
+                RNPaystackModule.this.transaction = transaction;
+
                 WritableMap map = Arguments.createMap();
                 map.putString("reference", transaction.getReference());
+
                 resolvePromise(map);
             }
 
             @Override
             public void beforeValidate(Transaction transaction) {
+                // This is called only before requesting OTP
+                // Save reference so you may send to server if
+                // error occurs with OTP
                 RNPaystackModule.this.transaction = transaction;
             }
 
             @Override
             public void onError(Throwable error, Transaction transaction) {
+                RNPaystackModule.this.transaction = transaction;
+
                 if (transaction.getReference() == null) {
                     rejectPromise("E_TRANSACTION_ERROR", error.getMessage());
                 } else {
@@ -325,6 +391,14 @@ public class RNPaystackModule extends ReactContextBaseJavaModule {
 
     private boolean isEmpty(String s) {
         return s == null || s.length() < 1;
+    }
+
+    private boolean hasStringKey(String key) {
+        return chargeOptions.hasKey(key) && !chargeOptions.isNull(key) && !chargeOptions.getString(key).isEmpty();
+    }
+
+    private boolean hasIntKey(String key) {
+        return chargeOptions.hasKey(key) && !chargeOptions.isNull(key) && chargeOptions.getInt(key) > 0;
     }
 
     private void rejectPromise(String code, String message) {
@@ -341,3 +415,6 @@ public class RNPaystackModule extends ReactContextBaseJavaModule {
         }
     }
 }
+
+
+
