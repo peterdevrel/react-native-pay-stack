@@ -250,54 +250,49 @@ public class RNPaystackModule extends ReactContextBaseJavaModule {
             charge.setReference(chargeOptions.getString("reference"));
         }
 
-      
 
 
-        // Add metadata support - PROPER IMPLEMENTATION
-        if (chargeOptions.hasKey("metadata")) {
-            try {
-                ReadableMap metadataMap = chargeOptions.getMap("metadata");
-                
-                // Handle custom_fields
-                if (metadataMap.hasKey("custom_fields")) {
-                    ReadableArray customFields = metadataMap.getArray("custom_fields");
-                    JSONArray customFieldsJson = new JSONArray();
-                    
-                    for (int i = 0; i < customFields.size(); i++) {
-                        ReadableMap field = customFields.getMap(i);
-                        JSONObject fieldJson = new JSONObject();
-                        fieldJson.put("display_name", field.getString("display_name"));
-                        fieldJson.put("variable_name", field.getString("variable_name"));
-                        fieldJson.put("value", field.getString("value"));
-                        customFieldsJson.put(fieldJson);
-                    }
-                    
-                    // This is the crucial line that makes it appear in dashboard
-                    charge.putMetadata("custom_fields", customFieldsJson);
+    // Handle metadata - SIMPLIFIED WORKING VERSION
+    if (chargeOptions.hasKey("metadata")) {
+        try {
+            ReadableMap metadataMap = chargeOptions.getMap("metadata");
+            
+            // Handle custom_fields as individual metadata entries
+            if (metadataMap.hasKey("custom_fields")) {
+                ReadableArray customFields = metadataMap.getArray("custom_fields");
+                for (int i = 0; i < customFields.size(); i++) {
+                    ReadableMap field = customFields.getMap(i);
+                    // Prefix keys to avoid collisions
+                    charge.putMetadata(
+                        "cf_" + field.getString("variable_name"), 
+                        field.getString("value")
+                    );
                 }
-                
-                // Handle other metadata properties
-                ReadableMapKeySetIterator iterator = metadataMap.keySetIterator();
-                while (iterator.hasNextKey()) {
-                    String key = iterator.nextKey();
-                    if (!key.equals("custom_fields")) {
-                        switch (metadataMap.getType(key)) {
-                            case Boolean:
-                                charge.putMetadata(key, String.valueOf(metadataMap.getBoolean(key)));
-                                break;
-                            case Number:
-                                charge.putMetadata(key, String.valueOf(metadataMap.getInt(key)));
-                                break;
-                            case String:
-                                charge.putMetadata(key, metadataMap.getString(key));
-                                break;
-                        }
-                    }
-                }
-            } catch (Exception e) {
-                Log.e(TAG, "Error setting metadata: " + e.getMessage());
             }
+            
+            // Handle other metadata properties
+            ReadableMapKeySetIterator iterator = metadataMap.keySetIterator();
+            while (iterator.hasNextKey()) {
+                String key = iterator.nextKey();
+                if (!key.equals("custom_fields")) {
+                    switch (metadataMap.getType(key)) {
+                        case Boolean:
+                            charge.putMetadata(key, String.valueOf(metadataMap.getBoolean(key)));
+                            break;
+                        case Number:
+                            charge.putMetadata(key, String.valueOf(metadataMap.getInt(key)));
+                            break;
+                        case String:
+                            charge.putMetadata(key, metadataMap.getString(key));
+                            break;
+                    }
+                }
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error processing metadata: " + e.getMessage());
         }
+    }
+
 
 
 
