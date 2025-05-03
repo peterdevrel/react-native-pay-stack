@@ -169,33 +169,36 @@ public class RNPaystackModule extends ReactContextBaseJavaModule {
         charge.setAmount(amountInKobo);
 
         // METADATA IMPLEMENTATION USING Map<String, Object>
-        if (chargeOptions.hasKey("metadata") && !chargeOptions.isNull("metadata")) {
-        try {
-            ReadableMap metadataMap = chargeOptions.getMap("metadata");
-            JSONObject metadataObject = new JSONObject();
 
-            if (metadataMap.hasKey("custom_fields") && !metadataMap.isNull("custom_fields")) {
-                ReadableArray customFields = metadataMap.getArray("custom_fields");
-                JSONArray customFieldsArray = new JSONArray();
+            if (chargeOptions.hasKey("metadata")) {
+                try {
+                    ReadableMap metadataMap = chargeOptions.getMap("metadata");
+                    JSONArray customFields = new JSONArray();
 
-                for (int i = 0; i < customFields.size(); i++) {
-                    ReadableMap field = customFields.getMap(i);
-                    JSONObject fieldObject = new JSONObject();
-                    fieldObject.put("display_name", field.getString("display_name"));
-                    fieldObject.put("variable_name", field.getString("variable_name"));
-                    fieldObject.put("value", field.getString("value"));
-                    customFieldsArray.put(fieldObject);
+                    // 1. Handle custom_fields array
+                    if (metadataMap.hasKey("custom_fields")) {
+                        ReadableArray fields = metadataMap.getArray("custom_fields");
+                        for (int i = 0; i < fields.size(); i++) {
+                            ReadableMap field = fields.getMap(i);
+                            JSONObject fieldJson = new JSONObject();
+                            
+                            // Required fields
+                            fieldJson.put("display_name", field.getString("display_name"));
+                            fieldJson.put("variable_name", field.getString("variable_name"));
+                            fieldJson.put("value", field.getString("value"));
+                            
+                            customFields.put(fieldJson);
+                        }
+                    }
+
+                    // 2. Set as Paystack-compatible format
+                    charge.putMetadata("custom_fields", customFields.toString());
+
+                } catch (Exception e) {
+                    Log.e(TAG, "Metadata error: " + e.getMessage());
                 }
-
-                metadataObject.put("custom_fields", customFieldsArray);
             }
-
-            charge.putMetadata("custom_fields", metadataObject.getJSONArray("custom_fields"));
-
-            } catch (JSONException e) {
-                e.printStackTrace();
-            }
-        }
+        
 
 
 
