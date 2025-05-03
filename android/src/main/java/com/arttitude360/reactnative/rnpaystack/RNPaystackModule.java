@@ -168,75 +168,47 @@ public class RNPaystackModule extends ReactContextBaseJavaModule {
         charge.setAmount(amountInKobo);
 
         // METADATA IMPLEMENTATION USING Map<String, Object>
+
+
         if (chargeOptions.hasKey("metadata")) {
             try {
                 ReadableMap metadataMap = chargeOptions.getMap("metadata");
-                Map<String, Object> metadata = new HashMap<>();
-
-                // Handle custom_fields
+                
                 if (metadataMap.hasKey("custom_fields")) {
-                    List<Map<String, String>> customFieldsList = new ArrayList<>();
                     ReadableArray customFields = metadataMap.getArray("custom_fields");
+                    JSONArray customFieldsJson = new JSONArray();
                     
                     for (int i = 0; i < customFields.size(); i++) {
                         ReadableMap field = customFields.getMap(i);
-                        Map<String, String> fieldMap = new HashMap<>();
-                        fieldMap.put("display_name", field.getString("display_name"));
-                        fieldMap.put("variable_name", field.getString("variable_name"));
-                        fieldMap.put("value", field.getString("value"));
-                        customFieldsList.add(fieldMap);
+                        JSONObject fieldJson = new JSONObject();
+                        
+                        // Mandatory fields with fallbacks
+                        fieldJson.put("display_name", 
+                            field.hasKey("display_name") ? 
+                            field.getString("display_name") : 
+                            "Field " + i);
+                        
+                        fieldJson.put("variable_name",
+                            field.hasKey("variable_name") ?
+                            field.getString("variable_name") :
+                            "field_" + i);
+                        
+                        fieldJson.put("value",
+                            field.hasKey("value") ?
+                            field.getString("value") :
+                            "undefined");
+                        
+                        customFieldsJson.put(fieldJson);
                     }
-                    metadata.put("custom_fields", customFieldsList);
+                    
+                    // Set as JSON string to preserve structure
+                    charge.putMetadata("custom_fields", customFieldsJson.toString());
                 }
-
-                // Add other metadata fields
-                ReadableMapKeySetIterator iterator = metadataMap.keySetIterator();
-                while (iterator.hasNextKey()) {
-                    String key = iterator.nextKey();
-                    if (!key.equals("custom_fields")) {
-                        switch (metadataMap.getType(key)) {
-                            case Boolean:
-                                metadata.put(key, metadataMap.getBoolean(key));
-                                break;
-                            case Number:
-                                metadata.put(key, metadataMap.getDouble(key));
-                                break;
-                            case String:
-                                metadata.put(key, metadataMap.getString(key));
-                                break;
-                            case Map:
-                                metadata.put(key, convertReadableMap(metadataMap.getMap(key)));
-                                break;
-                            case Array:
-                                metadata.put(key, convertReadableArray(metadataMap.getArray(key)));
-                                break;
-                        }
-                    }
-                }
-
-                // Set the metadata using reflection
-                try {
-                    Method setMetadata = charge.getClass().getDeclaredMethod("setMetadata", Map.class);
-                    setMetadata.setAccessible(true);
-                    setMetadata.invoke(charge, metadata);
-                    Log.d(TAG, "Metadata set successfully via reflection");
-                } catch (Exception e) {
-                    Log.e(TAG, "Error setting metadata via reflection: " + e.getMessage());
-                    // Fallback to JSON string approach
-                    try {
-                        JSONObject metadataJson = new JSONObject(metadata);
-                        charge.getClass()
-                            .getMethod("putMetadata", String.class, String.class)
-                            .invoke(charge, "custom_metadata", metadataJson.toString());
-                    } catch (Exception ex) {
-                        Log.e(TAG, "Failed to set metadata via fallback: " + ex.getMessage());
-                    }
-                }
-
             } catch (Exception e) {
-                Log.e(TAG, "Error processing metadata: " + e.getMessage());
+                Log.e(TAG, "Metadata processing failed", e);
             }
         }
+
     }
 
     private Map<String, Object> convertReadableMap(ReadableMap readableMap) {
