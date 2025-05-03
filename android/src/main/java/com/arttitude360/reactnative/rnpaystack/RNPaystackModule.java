@@ -23,6 +23,7 @@ import com.facebook.react.bridge.ReadableMapKeySetIterator;
 
 import org.json.JSONObject;
 import org.json.JSONException;
+import org.json.JSONArray;
 
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -168,46 +169,29 @@ public class RNPaystackModule extends ReactContextBaseJavaModule {
         charge.setAmount(amountInKobo);
 
         // METADATA IMPLEMENTATION USING Map<String, Object>
+        try {
+            if (metadataMap.hasKey("custom_fields") && !metadataMap.isNull("custom_fields")) {
+                ReadableArray customFields = metadataMap.getArray("custom_fields");
+                JSONArray customFieldsArray = new JSONArray();
 
-
-        if (chargeOptions.hasKey("metadata")) {
-            try {
-                ReadableMap metadataMap = chargeOptions.getMap("metadata");
-                
-                if (metadataMap.hasKey("custom_fields")) {
-                    ReadableArray customFields = metadataMap.getArray("custom_fields");
-                    JSONArray customFieldsJson = new JSONArray();
-                    
-                    for (int i = 0; i < customFields.size(); i++) {
-                        ReadableMap field = customFields.getMap(i);
-                        JSONObject fieldJson = new JSONObject();
-                        
-                        // Mandatory fields with fallbacks
-                        fieldJson.put("display_name", 
-                            field.hasKey("display_name") ? 
-                            field.getString("display_name") : 
-                            "Field " + i);
-                        
-                        fieldJson.put("variable_name",
-                            field.hasKey("variable_name") ?
-                            field.getString("variable_name") :
-                            "field_" + i);
-                        
-                        fieldJson.put("value",
-                            field.hasKey("value") ?
-                            field.getString("value") :
-                            "undefined");
-                        
-                        customFieldsJson.put(fieldJson);
-                    }
-                    
-                    // Set as JSON string to preserve structure
-                    charge.putMetadata("custom_fields", customFieldsJson.toString());
+                for (int i = 0; i < customFields.size(); i++) {
+                    ReadableMap field = customFields.getMap(i);
+                    JSONObject fieldObject = new JSONObject();
+                    fieldObject.put("display_name", field.getString("display_name"));
+                    fieldObject.put("variable_name", field.getString("variable_name"));
+                    fieldObject.put("value", field.getString("value"));
+                    customFieldsArray.put(fieldObject);
                 }
-            } catch (Exception e) {
-                Log.e(TAG, "Metadata processing failed", e);
+
+                JSONObject rootMetadata = new JSONObject();
+                rootMetadata.put("custom_fields", customFieldsArray);
+                charge.setMetadata(rootMetadata.toString());
             }
+        } catch (JSONException e) {
+            e.printStackTrace();
         }
+
+
 
     }
 
