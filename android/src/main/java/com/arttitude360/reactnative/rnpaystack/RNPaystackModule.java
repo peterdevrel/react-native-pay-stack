@@ -169,7 +169,11 @@ public class RNPaystackModule extends ReactContextBaseJavaModule {
         charge.setAmount(amountInKobo);
 
         // METADATA IMPLEMENTATION USING Map<String, Object>
+        if (chargeOptions.hasKey("metadata") && !chargeOptions.isNull("metadata")) {
         try {
+            ReadableMap metadataMap = chargeOptions.getMap("metadata");
+            JSONObject metadataObject = new JSONObject();
+
             if (metadataMap.hasKey("custom_fields") && !metadataMap.isNull("custom_fields")) {
                 ReadableArray customFields = metadataMap.getArray("custom_fields");
                 JSONArray customFieldsArray = new JSONArray();
@@ -183,13 +187,16 @@ public class RNPaystackModule extends ReactContextBaseJavaModule {
                     customFieldsArray.put(fieldObject);
                 }
 
-                JSONObject rootMetadata = new JSONObject();
-                rootMetadata.put("custom_fields", customFieldsArray);
-                charge.setMetadata(rootMetadata.toString());
+                metadataObject.put("custom_fields", customFieldsArray);
             }
-        } catch (JSONException e) {
-            e.printStackTrace();
+
+            charge.putMetadata("custom_fields", metadataObject.getJSONArray("custom_fields"));
+
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
         }
+
 
 
 
