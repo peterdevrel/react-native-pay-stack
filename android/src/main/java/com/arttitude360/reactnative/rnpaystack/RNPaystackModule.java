@@ -236,34 +236,34 @@ public class RNPaystackModule extends ReactContextBaseJavaModule {
 
         charge.setAmount(amountInKobo);
 
+
         if (chargeOptions.hasKey("metadata")) {
-            try {
-                ReadableMap metadataMap = chargeOptions.getMap("metadata");
-                
-                if (metadataMap.hasKey("custom_fields")) {
-                    ReadableArray fields = metadataMap.getArray("custom_fields");
-                    JSONObject metadataWrapper = new JSONObject();
+                try {
+                    ReadableMap metadataMap = chargeOptions.getMap("metadata");
                     JSONArray customFields = new JSONArray();
 
-                    // Build the exact web-compatible structure
-                    for (int i = 0; i < fields.size(); i++) {
-                        ReadableMap field = fields.getMap(i);
-                        JSONObject fieldJson = new JSONObject();
-                        
-                        fieldJson.put("display_name", field.getString("display_name"));
-                        fieldJson.put("variable_name", field.getString("variable_name"));
-                        fieldJson.put("value", field.getString("value"));
-                        
-                        customFields.put(fieldJson);
+                    // 1. Handle custom_fields array
+                    if (metadataMap.hasKey("custom_fields")) {
+                        ReadableArray fields = metadataMap.getArray("custom_fields");
+                        for (int i = 0; i < fields.size(); i++) {
+                            ReadableMap field = fields.getMap(i);
+                            JSONObject fieldJson = new JSONObject();
+                            
+                            // Required fields
+                            fieldJson.put("display_name", field.getString("display_name"));
+                            fieldJson.put("variable_name", field.getString("variable_name"));
+                            fieldJson.put("value", field.getString("value"));
+                            
+                            customFields.put(fieldJson);
+                        }
                     }
 
-                    // Key Step: Set as a JSON object with custom_fields array
-                    metadataWrapper.put("custom_fields", customFields);
-                    charge.putMetadata("metadata", metadataWrapper.toString());
+                    // 2. Set as Paystack-compatible format
+                    charge.putMetadata("custom_fields", customFields.toString());
+
+                } catch (Exception e) {
+                    Log.e(TAG, "Metadata error: " + e.getMessage());
                 }
-            } catch (Exception e) {
-                Log.e(TAG, "Metadata error", e);
-            }
         }
 
 
