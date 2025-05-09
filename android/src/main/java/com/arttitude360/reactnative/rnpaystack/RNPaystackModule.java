@@ -240,11 +240,13 @@ public class RNPaystackModule extends ReactContextBaseJavaModule {
         if (chargeOptions.hasKey("metadata")) {
                 try {
                     ReadableMap metadataMap = chargeOptions.getMap("metadata");
-                    JSONArray customFields = new JSONArray();
+                    JSONObject metadataObject = new JSONObject();
 
                     // 1. Handle custom_fields array
                     if (metadataMap.hasKey("custom_fields")) {
                         ReadableArray fields = metadataMap.getArray("custom_fields");
+                        JSONArray customFields = new JSONArray();
+
                         for (int i = 0; i < fields.size(); i++) {
                             ReadableMap field = fields.getMap(i);
                             JSONObject fieldJson = new JSONObject();
@@ -256,10 +258,11 @@ public class RNPaystackModule extends ReactContextBaseJavaModule {
                             
                             customFields.put(fieldJson);
                         }
+                    // 2. Set as Paystack-compatible format
+                    metadataObject.put("custom_fields", customFields); ;
                     }
 
-                    // 2. Set as Paystack-compatible format
-                    charge.putMetadata("custom_fields", customFields.toString());
+                    charge.putMetadata("metadata", metadataObject);
 
                 } catch (Exception e) {
                     Log.e(TAG, "Metadata error: " + e.getMessage());
