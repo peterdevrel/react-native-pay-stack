@@ -236,38 +236,45 @@ public class RNPaystackModule extends ReactContextBaseJavaModule {
 
         charge.setAmount(amountInKobo);
 
-
-      if (chargeOptions.hasKey("metadata")) {
-        try {
-            ReadableMap metadataMap = chargeOptions.getMap("metadata");
-            
-            if (metadataMap.hasKey("custom_fields")) {
-                ReadableArray fields = metadataMap.getArray("custom_fields");
-                JSONArray customFields = new JSONArray();
+        if (chargeOptions.hasKey("metadata")) {
+            try {
+                ReadableMap metadataMap = chargeOptions.getMap("metadata");
                 
-                for (int i = 0; i < fields.size(); i++) {
-                    ReadableMap field = fields.getMap(i);
-                    JSONObject fieldJson = new JSONObject();
+                if (metadataMap.hasKey("custom_fields")) {
+                    ReadableArray fields = metadataMap.getArray("custom_fields");
+                    JSONObject metadataWrapper = new JSONObject(); // Create wrapper object
+                    JSONArray customFields = new JSONArray();
                     
-                    fieldJson.put("display_name", field.getString("display_name"));
-                    fieldJson.put("variable_name", field.getString("variable_name"));
-                    fieldJson.put("value", field.getString("value"));
+                    for (int i = 0; i < fields.size(); i++) {
+                        ReadableMap field = fields.getMap(i);
+                        JSONObject fieldJson = new JSONObject();
+                        
+                        fieldJson.put("display_name", field.getString("display_name"));
+                        fieldJson.put("variable_name", field.getString("variable_name"));
+                        fieldJson.put("value", field.getString("value"));
+                        
+                        customFields.put(fieldJson);
+                    }
                     
-                    customFields.put(fieldJson);
+                    // ✅ Correct approach: Wrap array in JSONObject
+                    metadataWrapper.put("custom_fields", customFields);
+                    
+                    // Set as stringified JSON
+                    charge.putMetadata("custom_metadata", metadataWrapper.toString());
+                    
+                    // Alternative: Set individual fields for dashboard visibility
+                    for (int i = 0; i < customFields.length(); i++) {
+                        JSONObject field = customFields.getJSONObject(i);
+                        charge.putMetadata(
+                            "cf_" + field.getString("variable_name"),
+                            field.getString("value")
+                        );
+                    }
                 }
-                
-                // ✅ Critical fix: Set as direct JSON array
-                // charge.putMetadata("custom_fields", customFields);  // No toString()!
-                JSONObject metadata = new JSONObject();
-                metadata.put("custom_fields", customFields);
-                charge.putMetadata(metadata);
+            } catch (Exception e) {
+                Log.e(TAG, "Metadata processing failed", e);
             }
-        } catch (Exception e) {
-            Log.e(TAG, "Metadata error", e);
         }
-      }
-
-
 
         if (hasStringKey("currency")) {
             charge.setCurrency(chargeOptions.getString("currency"));
