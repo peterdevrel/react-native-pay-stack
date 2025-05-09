@@ -262,6 +262,7 @@ public class RNPaystackModule extends ReactContextBaseJavaModule {
         } catch (Exception e) {
             Log.e(TAG, "Metadata error", e);
         }
+      }
 
 
 
