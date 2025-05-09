@@ -239,43 +239,32 @@ public class RNPaystackModule extends ReactContextBaseJavaModule {
         if (chargeOptions.hasKey("metadata")) {
             try {
                 ReadableMap metadataMap = chargeOptions.getMap("metadata");
-
-                // Set other flat metadata fields first
-                ReadableMapKeySetIterator iterator = metadataMap.keySetIterator();
-                while (iterator.hasNextKey()) {
-                    String key = iterator.nextKey();
-
-                    // Handle custom_fields separately
-                    if (key.equals("custom_fields")) continue;
-
-                    charge.putMetadata(key, metadataMap.getString(key));
-                }
-
-                // Handle custom_fields array (as a JSON string)
+                
                 if (metadataMap.hasKey("custom_fields")) {
                     ReadableArray fields = metadataMap.getArray("custom_fields");
+                    JSONObject metadataWrapper = new JSONObject();
                     JSONArray customFields = new JSONArray();
 
+                    // Build the exact web-compatible structure
                     for (int i = 0; i < fields.size(); i++) {
                         ReadableMap field = fields.getMap(i);
                         JSONObject fieldJson = new JSONObject();
-
+                        
                         fieldJson.put("display_name", field.getString("display_name"));
                         fieldJson.put("variable_name", field.getString("variable_name"));
                         fieldJson.put("value", field.getString("value"));
-
+                        
                         customFields.put(fieldJson);
                     }
 
-                    // ✅ Correct: this adds custom_fields as a JSON string
-                    charge.putMetadata("custom_fields", customFields.toString());
+                    // Key Step: Set as a JSON object with custom_fields array
+                    metadataWrapper.put("custom_fields", customFields);
+                    charge.putMetadata("metadata", metadataWrapper.toString());
                 }
-
             } catch (Exception e) {
                 Log.e(TAG, "Metadata error", e);
             }
         }
-
 
 
         if (hasStringKey("currency")) {
