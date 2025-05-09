@@ -236,13 +236,22 @@ public class RNPaystackModule extends ReactContextBaseJavaModule {
 
         charge.setAmount(amountInKobo);
 
-       if (chargeOptions.hasKey("metadata")) {
+        if (chargeOptions.hasKey("metadata")) {
             try {
                 ReadableMap metadataMap = chargeOptions.getMap("metadata");
 
-                JSONObject metadata = new JSONObject();
+                // Set other flat metadata fields first
+                ReadableMapKeySetIterator iterator = metadataMap.keySetIterator();
+                while (iterator.hasNextKey()) {
+                    String key = iterator.nextKey();
 
-                // Handle custom_fields array
+                    // Handle custom_fields separately
+                    if (key.equals("custom_fields")) continue;
+
+                    charge.putMetadata(key, metadataMap.getString(key));
+                }
+
+                // Handle custom_fields array (as a JSON string)
                 if (metadataMap.hasKey("custom_fields")) {
                     ReadableArray fields = metadataMap.getArray("custom_fields");
                     JSONArray customFields = new JSONArray();
@@ -258,25 +267,15 @@ public class RNPaystackModule extends ReactContextBaseJavaModule {
                         customFields.put(fieldJson);
                     }
 
-                    metadata.put("custom_fields", customFields);
+                    // ✅ Correct: this adds custom_fields as a JSON string
+                    charge.putMetadata("custom_fields", customFields.toString());
                 }
-
-                // Add any additional key-values in metadata
-                ReadableMapKeySetIterator iterator = metadataMap.keySetIterator();
-                while (iterator.hasNextKey()) {
-                    String key = iterator.nextKey();
-                    if (!key.equals("custom_fields")) {
-                        metadata.put(key, metadataMap.getString(key));
-                    }
-                }
-
-                // ✅ Pass full metadata as serialized JSON string
-                charge.putMetadata("metadata", metadata.toString());
 
             } catch (Exception e) {
                 Log.e(TAG, "Metadata error", e);
             }
         }
+
 
 
         if (hasStringKey("currency")) {
