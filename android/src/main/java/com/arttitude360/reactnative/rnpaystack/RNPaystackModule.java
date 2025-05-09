@@ -257,7 +257,10 @@ public class RNPaystackModule extends ReactContextBaseJavaModule {
                 }
                 
                 // ✅ Critical fix: Set as direct JSON array
-                charge.putMetadata("custom_fields", customFields);  // No toString()!
+                // charge.putMetadata("custom_fields", customFields);  // No toString()!
+                JSONObject metadata = new JSONObject();
+                metadata.put("custom_fields", customFields);
+                charge.putMetadata(metadata);
             }
         } catch (Exception e) {
             Log.e(TAG, "Metadata error", e);
