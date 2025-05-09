@@ -236,38 +236,47 @@ public class RNPaystackModule extends ReactContextBaseJavaModule {
 
         charge.setAmount(amountInKobo);
 
-
         if (chargeOptions.hasKey("metadata")) {
-                try {
-                    ReadableMap metadataMap = chargeOptions.getMap("metadata");
-                    JSONObject metadataObject = new JSONObject();
+            try {
+                ReadableMap metadataMap = chargeOptions.getMap("metadata");
+                JSONObject metadataObject = new JSONObject();
 
-                    // 1. Handle custom_fields array
-                    if (metadataMap.hasKey("custom_fields")) {
-                        ReadableArray fields = metadataMap.getArray("custom_fields");
-                        JSONArray customFields = new JSONArray();
+                // Handle custom_fields array
+                if (metadataMap.hasKey("custom_fields")) {
+                    ReadableArray fields = metadataMap.getArray("custom_fields");
+                    JSONArray customFields = new JSONArray();
 
-                        for (int i = 0; i < fields.size(); i++) {
-                            ReadableMap field = fields.getMap(i);
-                            JSONObject fieldJson = new JSONObject();
-                            
-                            // Required fields
-                            fieldJson.put("display_name", field.getString("display_name"));
-                            fieldJson.put("variable_name", field.getString("variable_name"));
-                            fieldJson.put("value", field.getString("value"));
-                            
-                            customFields.put(fieldJson);
-                        }
-                    // 2. Set as Paystack-compatible format
-                    metadataObject.put("custom_fields", customFields); ;
+                    for (int i = 0; i < fields.size(); i++) {
+                        ReadableMap field = fields.getMap(i);
+                        JSONObject fieldJson = new JSONObject();
+
+                        fieldJson.put("display_name", field.getString("display_name"));
+                        fieldJson.put("variable_name", field.getString("variable_name"));
+                        fieldJson.put("value", field.getString("value"));
+
+                        customFields.put(fieldJson);
                     }
 
-                    charge.putMetadata("metadata", metadataObject);
-
-                } catch (Exception e) {
-                    Log.e(TAG, "Metadata error: " + e.getMessage());
+                    metadataObject.put("custom_fields", customFields);  // ✅ Actual array
                 }
+
+                // Optional: include other metadata fields
+                ReadableMapKeySetIterator iterator = metadataMap.keySetIterator();
+                while (iterator.hasNextKey()) {
+                    String key = iterator.nextKey();
+                    if (!key.equals("custom_fields")) {
+                        metadataObject.put(key, metadataMap.getString(key));
+                    }
+                }
+
+                // ✅ Send entire metadata object once
+                charge.setMetadata(metadataObject);  // ✅ This is the correct method
+
+            } catch (Exception e) {
+                Log.e(TAG, "Metadata error: " + e.getMessage());
+            }
         }
+
 
 
         if (hasStringKey("currency")) {
