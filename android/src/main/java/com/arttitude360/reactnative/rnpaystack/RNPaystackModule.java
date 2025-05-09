@@ -236,12 +236,12 @@ public class RNPaystackModule extends ReactContextBaseJavaModule {
 
         charge.setAmount(amountInKobo);
 
-        if (chargeOptions.hasKey("metadata")) {
+
+       if (chargeOptions.hasKey("metadata")) {
             try {
                 ReadableMap metadataMap = chargeOptions.getMap("metadata");
-                JSONObject metadataObject = new JSONObject();
 
-                // Handle custom_fields array
+                // Create array of custom fields
                 if (metadataMap.hasKey("custom_fields")) {
                     ReadableArray fields = metadataMap.getArray("custom_fields");
                     JSONArray customFields = new JSONArray();
@@ -257,20 +257,14 @@ public class RNPaystackModule extends ReactContextBaseJavaModule {
                         customFields.put(fieldJson);
                     }
 
-                    metadataObject.put("custom_fields", customFields);  // ✅ Actual array
-                }
+                    // ✅ Now serialize entire metadata manually
+                    JSONObject metadata = new JSONObject();
+                    metadata.put("custom_fields", customFields);
 
-                // Optional: include other metadata fields
-                ReadableMapKeySetIterator iterator = metadataMap.keySetIterator();
-                while (iterator.hasNextKey()) {
-                    String key = iterator.nextKey();
-                    if (!key.equals("custom_fields")) {
-                        metadataObject.put(key, metadataMap.getString(key));
-                    }
-                }
+                    // ✅ Pass JSON as string
+                    charge.putMetadata("custom_fields", customFields.toString());  // Paystack will parse this string
 
-                // ✅ Send entire metadata object once
-                charge.setMetadata(metadataObject);  // ✅ This is the correct method
+                }
 
             } catch (Exception e) {
                 Log.e(TAG, "Metadata error: " + e.getMessage());
