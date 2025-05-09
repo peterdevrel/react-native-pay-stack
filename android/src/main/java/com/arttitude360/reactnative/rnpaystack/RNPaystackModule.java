@@ -198,8 +198,35 @@ public class RNPaystackModule extends ReactContextBaseJavaModule {
                     Log.e(TAG, "Metadata error: " + e.getMessage());
                 }
             }
-        
 
+
+            if (hasStringKey("currency")) {
+                charge.setCurrency(chargeOptions.getString("currency"));
+            }
+
+            if (hasStringKey("plan")) {
+                charge.setPlan(chargeOptions.getString("plan"));
+            }
+
+            if (hasStringKey("subAccount")) {
+                charge.setSubaccount(chargeOptions.getString("subAccount"));
+
+                if (hasStringKey("bearer") && chargeOptions.getString("bearer") == "subaccount") {
+                    charge.setBearer(Charge.Bearer.subaccount);
+                }
+
+                if (hasStringKey("bearer") && chargeOptions.getString("bearer") == "account") {
+                    charge.setBearer(Charge.Bearer.account);
+                }
+
+                if (hasIntKey("transactionCharge")) {
+                    charge.setTransactionCharge(chargeOptions.getInt("transactionCharge"));
+                }
+            }
+
+            if (hasStringKey("reference")) {
+                charge.setReference(chargeOptions.getString("reference"));
+            }
 
 
 
