@@ -238,20 +238,37 @@ public class RNPaystackModule extends ReactContextBaseJavaModule {
         charge.setAmount(amountInKobo);
 
 
-        if (chargeOptions.hasKey("metadata")) {
+       if (chargeOptions.hasKey("metadata")) {
             try {
                 ReadableMap metadataMap = chargeOptions.getMap("metadata");
                 
-                // 1. Process custom_fields as a proper JSON array
+                // 1. First process and add all non-custom_fields metadata
+                ReadableMapKeySetIterator iterator = metadataMap.keySetIterator();
+                while (iterator.hasNextKey()) {
+                    String key = iterator.nextKey();
+                    if (!key.equals("custom_fields")) {
+                        switch (metadataMap.getType(key)) {
+                            case Number:
+                                charge.putMetadata(key, String.valueOf(metadataMap.getDouble(key)));
+                                break;
+                            case String:
+                                charge.putMetadata(key, metadataMap.getString(key));
+                                break;
+                            case Boolean:
+                                charge.putMetadata(key, String.valueOf(metadataMap.getBoolean(key)));
+                                break;
+                        }
+                    }
+                }
+                
+                // 2. Process custom_fields as individual entries
                 if (metadataMap.hasKey("custom_fields")) {
-                    JSONArray customFieldsArray = new JSONArray();
                     ReadableArray fields = metadataMap.getArray("custom_fields");
-                    
                     for (int i = 0; i < fields.size(); i++) {
                         ReadableMap field = fields.getMap(i);
-                        JSONObject fieldJson = new JSONObject();
                         
-                        // Add all field properties
+                        // Create JSON object for each custom field
+                        JSONObject fieldJson = new JSONObject();
                         if (field.hasKey("display_name")) {
                             fieldJson.put("display_name", field.getString("display_name"));
                         }
@@ -271,29 +288,9 @@ public class RNPaystackModule extends ReactContextBaseJavaModule {
                                     break;
                             }
                         }
-                        customFieldsArray.put(fieldJson);
-                    }
-                    
-                    // Add as direct JSON array (not stringified)
-                    charge.putMetadata("custom_fields", customFieldsArray);
-                }
-                
-                // 2. Process other metadata fields
-                ReadableMapKeySetIterator iterator = metadataMap.keySetIterator();
-                while (iterator.hasNextKey()) {
-                    String key = iterator.nextKey();
-                    if (!key.equals("custom_fields")) {
-                        switch (metadataMap.getType(key)) {
-                            case Number:
-                                charge.putMetadata(key, metadataMap.getDouble(key));
-                                break;
-                            case String:
-                                charge.putMetadata(key, metadataMap.getString(key));
-                                break;
-                            case Boolean:
-                                charge.putMetadata(key, metadataMap.getBoolean(key));
-                                break;
-                        }
+                        
+                        // Add each field with indexed key
+                        charge.putMetadata("custom_field_" + i, fieldJson.toString());
                     }
                 }
                 
