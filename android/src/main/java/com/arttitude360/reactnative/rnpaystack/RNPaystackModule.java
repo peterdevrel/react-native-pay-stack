@@ -239,11 +239,11 @@ public class RNPaystackModule extends ReactContextBaseJavaModule {
 
 
         if (chargeOptions.hasKey("metadata")) {
-        try {
-            ReadableMap metadataMap = chargeOptions.getMap("metadata");
-            JSONObject metadataObject = new JSONObject();
+            try {
+                ReadableMap metadataMap = chargeOptions.getMap("metadata");
+                JSONObject metadataObject = new JSONObject();
 
-            // 1. Extract custom_fields
+                // 1. Extract custom_fields
                 if (metadataMap.hasKey("custom_fields")) {
                     ReadableArray fields = metadataMap.getArray("custom_fields");
                     JSONArray customFields = new JSONArray();
@@ -267,8 +267,8 @@ public class RNPaystackModule extends ReactContextBaseJavaModule {
                     metadataObject.put("referrer", metadataMap.getString("referrer"));
                 }
 
-                // ✅ Set top-level metadata with custom_fields + optional referrer
-                charge.putMetadata("metadata", metadataObject);
+                // ✅ This is all you need — send the metadata properly formatted
+                charge.putMetadata(metadataObject);
 
             } catch (Exception e) {
                 Log.e(TAG, "Metadata error: " + e.getMessage());
