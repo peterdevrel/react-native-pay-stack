@@ -245,7 +245,7 @@ public class RNPaystackModule extends ReactContextBaseJavaModule {
                 ReadableMap metadataMap = chargeOptions.getMap("metadata");
                 JSONObject paystackMetadata = new JSONObject();
                 
-                // Process custom_fields array
+                // 1. Process custom_fields directly
                 if (metadataMap.hasKey("custom_fields")) {
                     JSONArray customFieldsArray = new JSONArray();
                     ReadableArray fields = metadataMap.getArray("custom_fields");
@@ -254,17 +254,13 @@ public class RNPaystackModule extends ReactContextBaseJavaModule {
                         ReadableMap field = fields.getMap(i);
                         JSONObject fieldJson = new JSONObject();
                         
-                        // Handle display_name
+                        // Handle all field types properly
                         if (field.hasKey("display_name")) {
                             fieldJson.put("display_name", field.getString("display_name"));
                         }
-                        
-                        // Handle variable_name
                         if (field.hasKey("variable_name")) {
                             fieldJson.put("variable_name", field.getString("variable_name"));
                         }
-                        
-                        // Handle value (supports both numbers and strings)
                         if (field.hasKey("value")) {
                             switch (field.getType("value")) {
                                 case Number:
@@ -280,13 +276,12 @@ public class RNPaystackModule extends ReactContextBaseJavaModule {
                                     fieldJson.put("value", field.getString("value"));
                             }
                         }
-                        
                         customFieldsArray.put(fieldJson);
                     }
                     paystackMetadata.put("custom_fields", customFieldsArray);
                 }
                 
-                // Process other metadata fields
+                // 2. Process other metadata fields (excluding custom_fields)
                 ReadableMapKeySetIterator iterator = metadataMap.keySetIterator();
                 while (iterator.hasNextKey()) {
                     String key = iterator.nextKey();
@@ -305,8 +300,8 @@ public class RNPaystackModule extends ReactContextBaseJavaModule {
                     }
                 }
                 
-                // Add to charge (stringify the entire metadata object)
-                charge.putMetadata("metadata", paystackMetadata.toString());
+                // 3. Add to charge CORRECTLY (single JSON object)
+                charge.putMetadata(paystackMetadata);
                 
             } catch (Exception e) {
                 Log.e(TAG, "Metadata processing failed", e);
