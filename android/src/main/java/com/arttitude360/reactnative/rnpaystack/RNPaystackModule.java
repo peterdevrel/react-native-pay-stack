@@ -239,34 +239,49 @@ public class RNPaystackModule extends ReactContextBaseJavaModule {
 
 
 
+
         if (chargeOptions.hasKey("metadata")) {
             try {
                 ReadableMap metadataMap = chargeOptions.getMap("metadata");
-                JSONObject metadataJson = new JSONObject();
-                JSONArray customFields = new JSONArray();
-
-                // Process custom_fields array
-                if (metadataMap.hasKey("custom_fields")) {
-                    ReadableArray fields = metadataMap.getArray("custom_fields");
+                
+                // Create the metadata JSON structure Paystack expects
+                JSONObject paystackMetadata = new JSONObject();
+                
+                // Process all top-level metadata fields
+                ReadableMapKeySetIterator iterator = metadataMap.keySetIterator();
+                while (iterator.hasNextKey()) {
+                    String key = iterator.nextKey();
                     
-                    for (int i = 0; i < fields.size(); i++) {
-                        ReadableMap field = fields.getMap(i);
-                        JSONObject fieldJson = new JSONObject();
+                    // Handle custom_fields specially
+                    if (key.equals("custom_fields")) {
+                        ReadableArray fields = metadataMap.getArray(key);
+                        JSONArray customFieldsArray = new JSONArray();
                         
-                        // Required fields
-                        fieldJson.put("display_name", field.getString("display_name"));
-                        fieldJson.put("variable_name", field.getString("variable_name"));
-                        fieldJson.put("value", field.getString("value"));
+                        for (int i = 0; i < fields.size(); i++) {
+                            ReadableMap field = fields.getMap(i);
+                            JSONObject fieldJson = new JSONObject();
+                            
+                            // Add all field properties dynamically
+                            ReadableMapKeySetIterator fieldIterator = field.keySetIterator();
+                            while (fieldIterator.hasNextKey()) {
+                                String fieldKey = fieldIterator.nextKey();
+                                fieldJson.put(fieldKey, field.getString(fieldKey));
+                            }
+                            
+                            customFieldsArray.put(fieldJson);
+                        }
                         
-                        customFields.put(fieldJson);
+                        paystackMetadata.put("custom_fields", customFieldsArray);
+                    } 
+                    // Handle other metadata fields
+                    else {
+                        paystackMetadata.put(key, metadataMap.getString(key));
                     }
-                    
-                    metadataJson.put("custom_fields", customFields);
                 }
-
-                // Apply to charge object
-                charge.putMetadata(metadataJson);
-
+                
+                // Add metadata to charge in the format Paystack expects
+                charge.putMetadata(paystackMetadata.toString());
+                
             } catch (Exception e) {
                 Log.e(TAG, "Metadata processing failed", e);
             }
