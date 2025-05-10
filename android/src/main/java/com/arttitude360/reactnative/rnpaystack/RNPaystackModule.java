@@ -239,12 +239,12 @@ public class RNPaystackModule extends ReactContextBaseJavaModule {
 
 
 
-        if (chargeOptions.hasKey("metadata")) {
+       if (chargeOptions.hasKey("metadata")) {
             try {
                 ReadableMap metadataMap = chargeOptions.getMap("metadata");
                 JSONObject flatMetadata = new JSONObject();
 
-                // Convert custom_fields array if present
+                // Handle custom_fields array
                 if (metadataMap.hasKey("custom_fields")) {
                     ReadableArray fields = metadataMap.getArray("custom_fields");
                     JSONArray customFields = new JSONArray();
@@ -252,39 +252,33 @@ public class RNPaystackModule extends ReactContextBaseJavaModule {
                     for (int i = 0; i < fields.size(); i++) {
                         ReadableMap field = fields.getMap(i);
                         JSONObject fieldJson = new JSONObject();
-                        fieldJson.put("display_name", field.getString("display_name"));
-                        fieldJson.put("variable_name", field.getString("variable_name"));
-                        fieldJson.put("value", field.getString("value"));
+
+                        if (field.hasKey("display_name"))
+                            fieldJson.put("display_name", field.getString("display_name"));
+                        if (field.hasKey("variable_name"))
+                            fieldJson.put("variable_name", field.getString("variable_name"));
+                        if (field.hasKey("value"))
+                            fieldJson.put("value", field.getString("value"));
+
                         customFields.put(fieldJson);
                     }
 
                     flatMetadata.put("custom_fields", customFields);
                 }
 
-                // Add optional fields like referrer
+                // Add any other metadata fields here if needed
                 if (metadataMap.hasKey("referrer")) {
                     flatMetadata.put("referrer", metadataMap.getString("referrer"));
                 }
 
-                // Now flatten and attach metadata correctly
-                Iterator<String> keys = flatMetadata.keys();
-                while (keys.hasNext()) {
-                    String key = keys.next();
-                    Object value = flatMetadata.get(key);
-
-                    if (value instanceof JSONObject) {
-                        charge.putMetadata(key, (JSONObject) value);
-                    } else if (value instanceof JSONArray) {
-                        charge.putMetadata(key, value.toString()); // ✅ FIXED: convert JSONArray to String
-                    } else {
-                        charge.putMetadata(key, value.toString());
-                    }
-                }
+                // 👇 This is the correct way to pass metadata as stringified JSON
+                charge.putMetadata("metadata", flatMetadata.toString());
 
             } catch (Exception e) {
-                Log.e(TAG, "Metadata error: " + e.getMessage());
+                Log.e(TAG, "Metadata processing failed: " + e.getMessage(), e);
             }
         }
+
 
 
 
