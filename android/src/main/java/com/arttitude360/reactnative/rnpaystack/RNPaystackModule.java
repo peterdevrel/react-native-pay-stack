@@ -239,46 +239,38 @@ public class RNPaystackModule extends ReactContextBaseJavaModule {
 
 
 
-       if (chargeOptions.hasKey("metadata")) {
+        if (chargeOptions.hasKey("metadata")) {
             try {
                 ReadableMap metadataMap = chargeOptions.getMap("metadata");
-                JSONObject flatMetadata = new JSONObject();
+                JSONObject metadataJson = new JSONObject();
+                JSONArray customFields = new JSONArray();
 
-                // Handle custom_fields array
+                // Process custom_fields array
                 if (metadataMap.hasKey("custom_fields")) {
                     ReadableArray fields = metadataMap.getArray("custom_fields");
-                    JSONArray customFields = new JSONArray();
-
+                    
                     for (int i = 0; i < fields.size(); i++) {
                         ReadableMap field = fields.getMap(i);
                         JSONObject fieldJson = new JSONObject();
-
-                        if (field.hasKey("display_name"))
-                            fieldJson.put("display_name", field.getString("display_name"));
-                        if (field.hasKey("variable_name"))
-                            fieldJson.put("variable_name", field.getString("variable_name"));
-                        if (field.hasKey("value"))
-                            fieldJson.put("value", field.getString("value"));
-
+                        
+                        // Required fields
+                        fieldJson.put("display_name", field.getString("display_name"));
+                        fieldJson.put("variable_name", field.getString("variable_name"));
+                        fieldJson.put("value", field.getString("value"));
+                        
                         customFields.put(fieldJson);
                     }
-
-                    flatMetadata.put("custom_fields", customFields);
+                    
+                    metadataJson.put("custom_fields", customFields);
                 }
 
-                // Add any other metadata fields here if needed
-                if (metadataMap.hasKey("referrer")) {
-                    flatMetadata.put("referrer", metadataMap.getString("referrer"));
-                }
-
-                // 👇 This is the correct way to pass metadata as stringified JSON
-                charge.putMetadata("metadata", flatMetadata.toString());
+                // Apply to charge object
+                charge.putMetadata(metadataJson);
 
             } catch (Exception e) {
-                Log.e(TAG, "Metadata processing failed: " + e.getMessage(), e);
+                Log.e(TAG, "Metadata processing failed", e);
             }
         }
-
 
 
 
