@@ -278,7 +278,7 @@ public class RNPaystackModule extends ReactContextBaseJavaModule {
                     if (value instanceof JSONArray) {
                         charge.putMetadata(key, (JSONArray) value);
                     } else if (value instanceof JSONObject) {
-                        charge.putMetadata(key, (JSONObject) value);
+                         charge.putMetadata(key, ((JSONArray) value).toString()); // ✅ FIX
                     } else {
                         charge.putMetadata(key, String.valueOf(value));
                     }
