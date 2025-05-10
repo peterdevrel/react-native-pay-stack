@@ -238,43 +238,33 @@ public class RNPaystackModule extends ReactContextBaseJavaModule {
         charge.setAmount(amountInKobo);
 
 
-       if (chargeOptions.hasKey("metadata")) {
+
+
+        if (chargeOptions.hasKey("metadata")) {
             try {
                 ReadableMap metadataMap = chargeOptions.getMap("metadata");
+                JSONObject paystackMetadata = new JSONObject();
                 
-                // 1. First process and add all non-custom_fields metadata
-                ReadableMapKeySetIterator iterator = metadataMap.keySetIterator();
-                while (iterator.hasNextKey()) {
-                    String key = iterator.nextKey();
-                    if (!key.equals("custom_fields")) {
-                        switch (metadataMap.getType(key)) {
-                            case Number:
-                                charge.putMetadata(key, String.valueOf(metadataMap.getDouble(key)));
-                                break;
-                            case String:
-                                charge.putMetadata(key, metadataMap.getString(key));
-                                break;
-                            case Boolean:
-                                charge.putMetadata(key, String.valueOf(metadataMap.getBoolean(key)));
-                                break;
-                        }
-                    }
-                }
-                
-                // 2. Process custom_fields as individual entries
+                // Process custom_fields array
                 if (metadataMap.hasKey("custom_fields")) {
+                    JSONArray customFieldsArray = new JSONArray();
                     ReadableArray fields = metadataMap.getArray("custom_fields");
+                    
                     for (int i = 0; i < fields.size(); i++) {
                         ReadableMap field = fields.getMap(i);
-                        
-                        // Create JSON object for each custom field
                         JSONObject fieldJson = new JSONObject();
+                        
+                        // Handle display_name
                         if (field.hasKey("display_name")) {
                             fieldJson.put("display_name", field.getString("display_name"));
                         }
+                        
+                        // Handle variable_name
                         if (field.hasKey("variable_name")) {
                             fieldJson.put("variable_name", field.getString("variable_name"));
                         }
+                        
+                        // Handle value (supports both numbers and strings)
                         if (field.hasKey("value")) {
                             switch (field.getType("value")) {
                                 case Number:
@@ -286,18 +276,46 @@ public class RNPaystackModule extends ReactContextBaseJavaModule {
                                 case Boolean:
                                     fieldJson.put("value", field.getBoolean("value"));
                                     break;
+                                default:
+                                    fieldJson.put("value", field.getString("value"));
                             }
                         }
                         
-                        // Add each field with indexed key
-                        charge.putMetadata("custom_field_" + i, fieldJson.toString());
+                        customFieldsArray.put(fieldJson);
+                    }
+                    paystackMetadata.put("custom_fields", customFieldsArray);
+                }
+                
+                // Process other metadata fields
+                ReadableMapKeySetIterator iterator = metadataMap.keySetIterator();
+                while (iterator.hasNextKey()) {
+                    String key = iterator.nextKey();
+                    if (!key.equals("custom_fields")) {
+                        switch (metadataMap.getType(key)) {
+                            case Number:
+                                paystackMetadata.put(key, metadataMap.getDouble(key));
+                                break;
+                            case String:
+                                paystackMetadata.put(key, metadataMap.getString(key));
+                                break;
+                            case Boolean:
+                                paystackMetadata.put(key, metadataMap.getBoolean(key));
+                                break;
+                        }
                     }
                 }
+                
+                // Add to charge (stringify the entire metadata object)
+                charge.putMetadata("metadata", paystackMetadata.toString());
                 
             } catch (Exception e) {
                 Log.e(TAG, "Metadata processing failed", e);
             }
         }
+
+
+
+
 
 
 
