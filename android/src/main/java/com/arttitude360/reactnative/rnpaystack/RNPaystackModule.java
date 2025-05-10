@@ -238,14 +238,11 @@ public class RNPaystackModule extends ReactContextBaseJavaModule {
         charge.setAmount(amountInKobo);
 
 
-
-
-       if (chargeOptions.hasKey("metadata")) {
+        if (chargeOptions.hasKey("metadata")) {
             try {
                 ReadableMap metadataMap = chargeOptions.getMap("metadata");
-                JSONObject paystackMetadata = new JSONObject();
                 
-                // 1. Process custom_fields array
+                // 1. Process custom_fields as a proper JSON array
                 if (metadataMap.hasKey("custom_fields")) {
                     JSONArray customFieldsArray = new JSONArray();
                     ReadableArray fields = metadataMap.getArray("custom_fields");
@@ -254,6 +251,7 @@ public class RNPaystackModule extends ReactContextBaseJavaModule {
                         ReadableMap field = fields.getMap(i);
                         JSONObject fieldJson = new JSONObject();
                         
+                        // Add all field properties
                         if (field.hasKey("display_name")) {
                             fieldJson.put("display_name", field.getString("display_name"));
                         }
@@ -271,14 +269,13 @@ public class RNPaystackModule extends ReactContextBaseJavaModule {
                                 case Boolean:
                                     fieldJson.put("value", field.getBoolean("value"));
                                     break;
-                                default:
-                                    fieldJson.put("value", field.getString("value"));
                             }
                         }
                         customFieldsArray.put(fieldJson);
                     }
-                    // Add as stringified JSON array
-                    charge.putMetadata("custom_fields", customFieldsArray.toString());
+                    
+                    // Add as direct JSON array (not stringified)
+                    charge.putMetadata("custom_fields", customFieldsArray);
                 }
                 
                 // 2. Process other metadata fields
@@ -288,13 +285,13 @@ public class RNPaystackModule extends ReactContextBaseJavaModule {
                     if (!key.equals("custom_fields")) {
                         switch (metadataMap.getType(key)) {
                             case Number:
-                                charge.putMetadata(key, String.valueOf(metadataMap.getDouble(key)));
+                                charge.putMetadata(key, metadataMap.getDouble(key));
                                 break;
                             case String:
                                 charge.putMetadata(key, metadataMap.getString(key));
                                 break;
                             case Boolean:
-                                charge.putMetadata(key, String.valueOf(metadataMap.getBoolean(key)));
+                                charge.putMetadata(key, metadataMap.getBoolean(key));
                                 break;
                         }
                     }
@@ -304,10 +301,6 @@ public class RNPaystackModule extends ReactContextBaseJavaModule {
                 Log.e(TAG, "Metadata processing failed", e);
             }
         }
-
-
-
-
 
 
 
