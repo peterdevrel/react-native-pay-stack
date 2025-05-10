@@ -238,12 +238,12 @@ public class RNPaystackModule extends ReactContextBaseJavaModule {
 
 
 
-       if (chargeOptions.hasKey("metadata")) {
+        if (chargeOptions.hasKey("metadata")) {
             try {
                 ReadableMap metadataMap = chargeOptions.getMap("metadata");
-                JSONObject metadataObject = new JSONObject();
+                JSONObject flatMetadata = new JSONObject();
 
-                // 1. Extract custom_fields
+                // Handle custom_fields array
                 if (metadataMap.hasKey("custom_fields")) {
                     ReadableArray fields = metadataMap.getArray("custom_fields");
                     JSONArray customFields = new JSONArray();
@@ -259,26 +259,22 @@ public class RNPaystackModule extends ReactContextBaseJavaModule {
                         customFields.put(fieldJson);
                     }
 
-                    metadataObject.put("custom_fields", customFields);
+                    flatMetadata.put("custom_fields", customFields);
                 }
 
-                // Optional referrer
+                // Optional: add referrer or other fields
                 if (metadataMap.hasKey("referrer")) {
-                    metadataObject.put("referrer", metadataMap.getString("referrer"));
+                    flatMetadata.put("referrer", metadataMap.getString("referrer"));
                 }
 
-                // ✅ Set metadata string under correct key
-                charge.putMetadata("custom_fields", metadataObject.getJSONArray("custom_fields").toString());
-
-                // Optionally set referrer (if you want to track where payment came from)
-                if (metadataObject.has("referrer")) {
-                    charge.putMetadata("referrer", metadataObject.getString("referrer"));
-                }
+                // ✅ Set metadata (as a string) with custom_fields and any extras
+                charge.putMetadata("metadata", flatMetadata.toString());
 
             } catch (Exception e) {
                 Log.e(TAG, "Metadata error: " + e.getMessage());
             }
         }
+
 
 
 
