@@ -243,44 +243,68 @@ public class RNPaystackModule extends ReactContextBaseJavaModule {
         if (chargeOptions.hasKey("metadata")) {
             try {
                 ReadableMap metadataMap = chargeOptions.getMap("metadata");
-                
-                // Create the metadata JSON structure Paystack expects
                 JSONObject paystackMetadata = new JSONObject();
                 
-                // Process all top-level metadata fields
+                // Process custom_fields if present
+                if (metadataMap.hasKey("custom_fields")) {
+                    ReadableArray fields = metadataMap.getArray("custom_fields");
+                    JSONArray customFieldsArray = new JSONArray();
+                    
+                    for (int i = 0; i < fields.size(); i++) {
+                        ReadableMap field = fields.getMap(i);
+                        JSONObject fieldJson = new JSONObject();
+                        
+                        // Add all field properties
+                        if (field.hasKey("display_name")) {
+                            fieldJson.put("display_name", field.getString("display_name"));
+                        }
+                        if (field.hasKey("variable_name")) {
+                            fieldJson.put("variable_name", field.getString("variable_name"));
+                        }
+                        if (field.hasKey("value")) {
+                            fieldJson.put("value", field.getString("value"));
+                        }
+                        
+                        customFieldsArray.put(fieldJson);
+                    }
+                    
+                    paystackMetadata.put("custom_fields", customFieldsArray);
+                }
+                
+                // Process other metadata fields
                 ReadableMapKeySetIterator iterator = metadataMap.keySetIterator();
                 while (iterator.hasNextKey()) {
                     String key = iterator.nextKey();
-                    
-                    // Handle custom_fields specially
-                    if (key.equals("custom_fields")) {
-                        ReadableArray fields = metadataMap.getArray(key);
-                        JSONArray customFieldsArray = new JSONArray();
-                        
-                        for (int i = 0; i < fields.size(); i++) {
-                            ReadableMap field = fields.getMap(i);
-                            JSONObject fieldJson = new JSONObject();
-                            
-                            // Add all field properties dynamically
-                            ReadableMapKeySetIterator fieldIterator = field.keySetIterator();
-                            while (fieldIterator.hasNextKey()) {
-                                String fieldKey = fieldIterator.nextKey();
-                                fieldJson.put(fieldKey, field.getString(fieldKey));
-                            }
-                            
-                            customFieldsArray.put(fieldJson);
+                    if (!key.equals("custom_fields")) { // Skip already processed
+                        switch (metadataMap.getType(key)) {
+                            case String:
+                                paystackMetadata.put(key, metadataMap.getString(key));
+                                break;
+                            case Number:
+                                paystackMetadata.put(key, metadataMap.getDouble(key));
+                                break;
+                            case Boolean:
+                                paystackMetadata.put(key, metadataMap.getBoolean(key));
+                                break;
                         }
-                        
-                        paystackMetadata.put("custom_fields", customFieldsArray);
-                    } 
-                    // Handle other metadata fields
-                    else {
-                        paystackMetadata.put(key, metadataMap.getString(key));
                     }
                 }
                 
-                // Add metadata to charge in the format Paystack expects
-                charge.putMetadata(paystackMetadata.toString());
+                // Add metadata to charge using the correct method
+                Iterator<String> keys = paystackMetadata.keys();
+                while (keys.hasNext()) {
+                    String key = keys.next();
+                    Object value = paystackMetadata.get(key);
+                    
+                    if (value instanceof JSONObject) {
+                        charge.putMetadata(key, (JSONObject) value);
+                    } else if (value instanceof JSONArray) {
+                        // For arrays, stringify them
+                        charge.putMetadata(key, value.toString());
+                    } else {
+                        charge.putMetadata(key, String.valueOf(value));
+                    }
+                }
                 
             } catch (Exception e) {
                 Log.e(TAG, "Metadata processing failed", e);
@@ -323,61 +347,8 @@ public class RNPaystackModule extends ReactContextBaseJavaModule {
 
     }
 
-       private Map<String, Object> convertReadableMap(ReadableMap readableMap) {
-        Map<String, Object> map = new HashMap<>();
-        ReadableMapKeySetIterator iterator = readableMap.keySetIterator();
-        while (iterator.hasNextKey()) {
-            String key = iterator.nextKey();
-            switch (readableMap.getType(key)) {
-                case Null:
-                    map.put(key, null);
-                    break;
-                case Boolean:
-                    map.put(key, readableMap.getBoolean(key));
-                    break;
-                case Number:
-                    map.put(key, readableMap.getDouble(key));
-                    break;
-                case String:
-                    map.put(key, readableMap.getString(key));
-                    break;
-                case Map:
-                    map.put(key, convertReadableMap(readableMap.getMap(key)));
-                    break;
-                case Array:
-                    map.put(key, convertReadableArray(readableMap.getArray(key)));
-                    break;
-            }
-        }
-        return map;
-    }
+    
 
-    private List<Object> convertReadableArray(ReadableArray readableArray) {
-        List<Object> list = new ArrayList<>();
-        for (int i = 0; i < readableArray.size(); i++) {
-            switch (readableArray.getType(i)) {
-                case Null:
-                    list.add(null);
-                    break;
-                case Boolean:
-                    list.add(readableArray.getBoolean(i));
-                    break;
-                case Number:
-                    list.add(readableArray.getDouble(i));
-                    break;
-                case String:
-                    list.add(readableArray.getString(i));
-                    break;
-                case Map:
-                    list.add(convertReadableMap(readableArray.getMap(i)));
-                    break;
-                case Array:
-                    list.add(convertReadableArray(readableArray.getArray(i)));
-                    break;
-            }
-        }
-        return list;
-    }
 
     private void createTransaction() {
 
