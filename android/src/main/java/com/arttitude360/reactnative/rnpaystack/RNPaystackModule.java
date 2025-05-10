@@ -16,6 +16,7 @@ import co.paystack.android.Transaction;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+import java.util.Iterator;
 
 import com.facebook.react.bridge.Arguments;
 import com.facebook.react.bridge.Promise;
