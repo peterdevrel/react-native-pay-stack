@@ -238,7 +238,7 @@ public class RNPaystackModule extends ReactContextBaseJavaModule {
 
 
 
-        if (chargeOptions.hasKey("metadata")) {
+       if (chargeOptions.hasKey("metadata")) {
             try {
                 ReadableMap metadataMap = chargeOptions.getMap("metadata");
                 JSONObject metadataObject = new JSONObject();
@@ -262,13 +262,18 @@ public class RNPaystackModule extends ReactContextBaseJavaModule {
                     metadataObject.put("custom_fields", customFields);
                 }
 
-                // 2. Optional referrer
+                // Optional referrer
                 if (metadataMap.hasKey("referrer")) {
                     metadataObject.put("referrer", metadataMap.getString("referrer"));
                 }
 
-                // ✅ This is all you need — send the metadata properly formatted
-                charge.putMetadata(metadataObject);
+                // ✅ Set metadata string under correct key
+                charge.putMetadata("custom_fields", metadataObject.getJSONArray("custom_fields").toString());
+
+                // Optionally set referrer (if you want to track where payment came from)
+                if (metadataObject.has("referrer")) {
+                    charge.putMetadata("referrer", metadataObject.getString("referrer"));
+                }
 
             } catch (Exception e) {
                 Log.e(TAG, "Metadata error: " + e.getMessage());
