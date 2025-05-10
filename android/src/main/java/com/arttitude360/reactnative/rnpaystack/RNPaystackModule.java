@@ -238,7 +238,7 @@ public class RNPaystackModule extends ReactContextBaseJavaModule {
 
 
 
-       if (chargeOptions.hasKey("metadata")) {
+      if (chargeOptions.hasKey("metadata")) {
             try {
                 ReadableMap metadataMap = chargeOptions.getMap("metadata");
                 JSONObject flatMetadata = new JSONObject();
@@ -262,28 +262,24 @@ public class RNPaystackModule extends ReactContextBaseJavaModule {
                     flatMetadata.put("custom_fields", customFields);
                 }
 
-                // Optional: add referrer or other fields
+                // Optional: add referrer
                 if (metadataMap.hasKey("referrer")) {
                     flatMetadata.put("referrer", metadataMap.getString("referrer"));
                 }
 
-                // ✅ Flatten metadata properly onto charge
+                // ✅ Flatten JSON to key-value pairs for Paystack SDK
                 Iterator<String> keys = flatMetadata.keys();
                 while (keys.hasNext()) {
                     String key = keys.next();
-                    Object value = flatMetadata.get(key);
-
-                    if (value instanceof JSONArray || value instanceof JSONObject) {
-                        charge.putMetadata(key, value.toString());  // serialize arrays/objects
-                    } else {
-                        charge.putMetadata(key, String.valueOf(value));
-                    }
+                    String value = flatMetadata.get(key).toString();
+                    charge.putMetadata(key, value);  // 👈 Only this signature works
                 }
 
             } catch (Exception e) {
                 Log.e(TAG, "Metadata error: " + e.getMessage());
             }
-        }
+     }
+
 
 
 
