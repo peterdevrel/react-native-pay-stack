@@ -244,7 +244,7 @@ public class RNPaystackModule extends ReactContextBaseJavaModule {
                 ReadableMap metadataMap = chargeOptions.getMap("metadata");
                 JSONObject flatMetadata = new JSONObject();
 
-                // Handle custom_fields array
+                // Convert custom_fields array if present
                 if (metadataMap.hasKey("custom_fields")) {
                     ReadableArray fields = metadataMap.getArray("custom_fields");
                     JSONArray customFields = new JSONArray();
@@ -252,35 +252,32 @@ public class RNPaystackModule extends ReactContextBaseJavaModule {
                     for (int i = 0; i < fields.size(); i++) {
                         ReadableMap field = fields.getMap(i);
                         JSONObject fieldJson = new JSONObject();
-
                         fieldJson.put("display_name", field.getString("display_name"));
                         fieldJson.put("variable_name", field.getString("variable_name"));
                         fieldJson.put("value", field.getString("value"));
-
                         customFields.put(fieldJson);
                     }
 
-                    // ✅ Add as actual JSONArray, not string
                     flatMetadata.put("custom_fields", customFields);
                 }
 
-                // Optional: add other flat metadata fields
+                // Add optional fields like referrer
                 if (metadataMap.hasKey("referrer")) {
                     flatMetadata.put("referrer", metadataMap.getString("referrer"));
                 }
 
-                // ✅ Flatten metadata to charge
+                // Now flatten and attach metadata correctly
                 Iterator<String> keys = flatMetadata.keys();
                 while (keys.hasNext()) {
                     String key = keys.next();
                     Object value = flatMetadata.get(key);
 
-                    if (value instanceof JSONArray) {
-                        charge.putMetadata(key, (JSONArray) value);
-                    } else if (value instanceof JSONObject) {
-                         charge.putMetadata(key, ((JSONArray) value).toString()); // ✅ FIX
+                    if (value instanceof JSONObject) {
+                        charge.putMetadata(key, (JSONObject) value);
+                    } else if (value instanceof JSONArray) {
+                        charge.putMetadata(key, value.toString()); // ✅ FIXED: convert JSONArray to String
                     } else {
-                        charge.putMetadata(key, String.valueOf(value));
+                        charge.putMetadata(key, value.toString());
                     }
                 }
 
